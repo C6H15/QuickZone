@@ -610,6 +610,8 @@ end
 	@within Zone
 ]=]
 function Zone.destroy(self: Types.InternalZone): ()
+	local zoneId = self.id
+
 	-- Force flush so the zone object will not be nil when spatial query is done in the Scheduler
 	local attachedObservers = State.zoneAttachedObservers[self.id]
 	if attachedObservers then
@@ -620,19 +622,9 @@ function Zone.destroy(self: Types.InternalZone): ()
 			end
 
 			for entity, _ in trackedEntities do
-				local groupId = State.entityToGroup[entity]
-				if not groupId then
-					continue
-				end
+				local data = State.entityData[entity]
 
-				local group = State.groups[groupId]
-				if not group then
-					continue
-				end
-
-				local data = group.entityData[entity]
-
-				if not data or data.activeObserverMemberships[observerId] ~= self.id then
+				if not data or data.activeObserverMemberships[observerId] ~= zoneId then
 					continue
 				end
 

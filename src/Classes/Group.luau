@@ -6,6 +6,7 @@ local RunService = game:GetService('RunService')
 local State = require(script.Parent.Parent.State)
 local Types = require(script.Parent.Parent.Types)
 local Config = require(script.Parent.Parent.Config)
+local updateProfile = require(script.Parent.Parent.Core.updateProfile)
 
 local sharedPlayerGroup: Types.Group?
 local sharedLocalPlayerGroup: Types.Group?
@@ -16,6 +17,9 @@ local STRAT_PRIM = Config.Strategy.PRIM
 local STRAT_WORLD = Config.Strategy.WORLD
 local STRAT_CFRAME = Config.Strategy.CFRAME
 local STRAT_PIVOT = Config.Strategy.PIVOT
+
+local DEFAULT_PRECISION_SQ = Config.Observer.precision ^ 2
+local DEFAULT_UPDATE_RATE = Config.Observer.updateRate
 
 local IS_CLIENT = RunService:IsClient()
 
@@ -128,36 +132,20 @@ Group.__index = Group
 	@return Group
 ]=]
 function Group.new(config: {
-	updateRate: number?,
-	precision: number?,
+	tag: string?,
 	entities: { Types.Entity }?,
 }?): Types.Group
-	local hz = config and config.updateRate
-	assert(not hz or hz > 0, '[QuickZone] updateRate must be greater than 0')
-
-	local n = config and config.precision
-	assert(not n or n >= 0, '[QuickZone] precision must be non-negative')
-
 	local id = State.nextGroupId
 	State.nextGroupId += 1
-
-	local updateRate = hz or Config.Scheduler.updateRate
-	local precision = n or Config.Scheduler.precision
 
 	local self: Types.InternalGroup = setmetatable({
 		id = id,
 		entities = {},
 		entityIndices = {},
-		entityData = {},
-		config = {
-			updateRate = updateRate,
-			precisionSq = precision ^ 2,
-		},
 	}, Group) :: any
 
 	State.groups[id] = self
 	State.groupToObservers[id] = {}
-	table.insert(State.groupList, self)
 
 	if config and config.entities then
 		self:addBulk(config.entities)
@@ -181,16 +169,12 @@ end
 	@return Group
 ]=]
 function Group.players(config: {
-	updateRate: number?,
-	precision: number?,
+	tag: string?,
 	entities: { Types.Entity }?,
 }?): Types.Group
 	if sharedPlayerGroup then
-		if config then
-			sharedPlayerGroup:setConfig(config)
-			if config.entities then
-				sharedPlayerGroup:addBulk(config.entities)
-			end
+		if config and config.entities then
+			sharedPlayerGroup:addBulk(config.entities)
 		end
 		return sharedPlayerGroup
 	end
@@ -260,18 +244,14 @@ end
 	@return Group
 ]=]
 function Group.localPlayer(config: {
-	updateRate: number?,
-	precision: number?,
+	tag: string?,
 	entities: { Types.Entity }?,
 }?): Types.Group
 	assert(IS_CLIENT, '[QuickZone] QuickZone.LocalPlayerGroup can only be called on the Client.')
 
 	if sharedLocalPlayerGroup then
-		if config then
-			sharedLocalPlayerGroup:setConfig(config)
-			if config.entities then
-				sharedLocalPlayerGroup:addBulk(config.entities)
-			end
+		if config and config.entities then
+			sharedLocalPlayerGroup:addBulk(config.entities)
 		end
 		return sharedLocalPlayerGroup
 	end
@@ -333,58 +313,65 @@ end
 	@return Group
 ]=]
 function Group.add(self: Types.InternalGroup, entity: Types.Entity, metadata: any?): Types.Group
-	local oldGroupId = State.entityToGroup[entity]
-	if oldGroupId then
-		if oldGroupId == self.id then
-			return self
-		end
-		local oldGroup = State.groups[oldGroupId]
-		if oldGroup then
-			oldGroup:remove(entity)
-		end
+	if not State.entityToGroups[entity] then
+		State.entityToGroups[entity] = {}
 	end
 
-	local strat
-	if typeof(entity) == 'Instance' then
-		if entity:IsA('BasePart') then
-			strat = STRAT_POS
-		elseif entity:IsA('Attachment') or entity:IsA('Bone') then
-			strat = STRAT_WORLD
-		elseif entity:IsA('Camera') then
-			strat = STRAT_CFRAME
-		elseif entity:IsA('Model') then
-			strat = entity.PrimaryPart and STRAT_PRIM or STRAT_PIVOT
-		end
-	elseif typeof(entity) == 'table' then
-		if entity.Position then
-			strat = STRAT_POS
-		elseif entity.CFrame then
-			strat = STRAT_CFRAME
-		elseif entity.WorldPosition then
-			strat = STRAT_WORLD
-		elseif entity.GetPivot then
-			strat = STRAT_PIVOT
-		end
-	end
-
-	if not strat then
-		warn(string.format('[QuickZone] Invalid entity (%s). Expected BasePart, Model, etc.', tostring(entity)))
+	if State.entityToGroups[entity][self.id] then
 		return self
 	end
 
-	local data = {
-		lastPosition = Vector3.zero,
-		strategy = strat,
-		isDirty = true,
-		activeObserverMemberships = {},
-	}
+	State.entityToGroups[entity][self.id] = true
+
+	if not State.entityData[entity] then
+		local strat
+		if typeof(entity) == 'Instance' then
+			if entity:IsA('BasePart') then
+				strat = STRAT_POS
+			elseif entity:IsA('Attachment') or entity:IsA('Bone') then
+				strat = STRAT_WORLD
+			elseif entity:IsA('Camera') then
+				strat = STRAT_CFRAME
+			elseif entity:IsA('Model') then
+				strat = entity.PrimaryPart and STRAT_PRIM or STRAT_PIVOT
+			end
+		elseif typeof(entity) == 'table' then
+			if entity.Position then
+				strat = STRAT_POS
+			elseif entity.CFrame then
+				strat = STRAT_CFRAME
+			elseif entity.WorldPosition then
+				strat = STRAT_WORLD
+			elseif entity.GetPivot then
+				strat = STRAT_PIVOT
+			end
+		end
+
+		if not strat then
+			warn(
+				string.format(
+					'[QuickZone] Invalid entity (%s). Expected BasePart, Model, Bone, Attachment, Camera, or a duck typed table.',
+					tostring(entity)
+				)
+			)
+			State.entityToGroups[entity][self.id] = nil
+			return self
+		end
+
+		State.entityData[entity] = {
+			strategy = strat,
+			lastPosition = Vector3.zero,
+			isDirty = true,
+			activeObserverMemberships = {},
+			precisionSq = DEFAULT_PRECISION_SQ,
+			updateRate = DEFAULT_UPDATE_RATE,
+			bucketIndex = 0,
+		}
+	end
 
 	local idx = #self.entities + 1
 	self.entities[idx] = entity
 	self.entityIndices[entity] = idx
-	self.entityData[entity] = data
-
-	State.entityToGroup[entity] = self.id
 
 	if metadata then
 		if not State.entityMetadata[entity] then
@@ -392,6 +379,8 @@ function Group.add(self: Types.InternalGroup, entity: Types.Entity, metadata: an
 		end
 		State.entityMetadata[entity] = metadata
 	end
+
+	updateProfile(entity)
 
 	return self
 end
@@ -426,31 +415,41 @@ end
 	@return Group
 ]=]
 function Group.remove(self: Types.InternalGroup, entity: Types.Entity): Types.Group
-	if State.entityToGroup[entity] ~= self.id then
+	if not State.entityToGroups[entity] or not State.entityToGroups[entity][self.id] then
 		return self
 	end
 
-	local data = self.entityData[entity]
+	State.entityToGroups[entity][self.id] = nil
+	local data = State.entityData[entity]
 
-	-- Trigger exit
+	-- Trigger exit events for Observers that are actively tracking this entity
 	for observerId, oldZoneId in data.activeObserverMemberships do
-		if State.observerTrackingEntities[observerId] then
-			State.observerTrackingEntities[observerId][entity] = nil
+		local stillWatched = false
+		for remainingGroupId, _ in State.entityToGroups[entity] do
+			if State.groupToObservers[remainingGroupId] and State.groupToObservers[remainingGroupId][observerId] then
+				stillWatched = true
+				break
+			end
 		end
 
-		local cbs = State.observerExitedCallbacks[observerId]
-		if not cbs then
-			continue
-		end
+		if not stillWatched then
+			data.activeObserverMemberships[observerId] = nil
+			if State.observerTrackingEntities[observerId] then
+				State.observerTrackingEntities[observerId][entity] = nil
+			end
 
-		local safety = State.observerSafety[observerId]
-		local z = State.zoneIdToZoneObj[oldZoneId]
-		local cd = State.entityMetadata[entity]
-		for _, fn in cbs do
-			if safety then
-				task.spawn(fn, entity, z, cd)
-			else
-				fn(entity, z, cd)
+			local cbs = State.observerExitedCallbacks[observerId]
+			if cbs then
+				local safety = State.observerSafety[observerId]
+				local z = State.zoneIdToZoneObj[oldZoneId]
+				local cd = State.entityMetadata[entity]
+				for _, fn in cbs do
+					if safety then
+						task.spawn(fn, entity, z, cd)
+					else
+						fn(entity, z, cd)
+					end
+				end
 			end
 		end
 	end
@@ -470,9 +469,13 @@ function Group.remove(self: Types.InternalGroup, entity: Types.Entity): Types.Gr
 		self.entityIndices[entity] = nil
 	end
 
-	self.entityData[entity] = nil
-	State.entityToGroup[entity] = nil
-	State.entityMetadata[entity] = nil
+	updateProfile(entity)
+
+	if next(State.entityToGroups[entity]) == nil then
+		State.entityData[entity] = nil
+		State.entityToGroups[entity] = nil
+		State.entityMetadata[entity] = nil
+	end
 
 	return self
 end
@@ -518,110 +521,8 @@ end
 	@return boolean
 ]=]
 function Group.contains(self: Types.InternalGroup, entity: Types.Entity): boolean
-	local groupId = State.entityToGroup[entity]
-	return groupId and groupId == self.id
-end
-
---[=[ 
-	Updates the group's configuration. 
-
-	:::tip Precision
-	A higher `precision` value (e.g., 2.0) means entities must move further 
-	before a re-calculation is triggered, improving performance for large groups.
-	:::
-
-	@method setConfig
-	@within Group
-	@param config { updateRate: number?, precision: number?, safety: boolean? }
-	@return Group
-]=]
-function Group.setConfig(
-	self: Types.InternalGroup,
-	config: {
-		updateRate: number?,
-		precision: number?,
-	}
-): Types.Group
-	local hz = config.updateRate
-	assert(not hz or hz > 0, '[QuickZone] updateRate must be greater than 0')
-
-	local n = config.precision
-	assert(not n or n >= 0, '[QuickZone] precision must be non-negative')
-
-	if hz then
-		self.config.updateRate = hz
-	end
-	if n then
-		self.config.precisionSq = n ^ 2
-	end
-
-	return self
-end
-
---[=[
-	Set the update rate of the group.
-
-	@method setUpdateRate
-	@within Group
-	@param updateRate number
-	@return Group
-]=]
-function Group.setUpdateRate(self: Types.InternalGroup, updateRate: number): Types.Group
-	self.config.updateRate = updateRate
-	return self
-end
-
---[=[
-	Set the current precision of the group.
-
-	@method setPrecision
-	@within Group
-	@param precision number
-	@return Group
-]=]
-function Group.setPrecision(self: Types.InternalGroup, precision: number): Types.Group
-	self.config.precisionSq = precision ^ 2
-	return self
-end
-
---[=[
-	Returns the current configuration settings for the group.
-
-	@method getConfig
-	@within Group
-	@return { updateRate: number, precision: number, safety: boolean }
-]=]
-function Group.getConfig(self: Types.InternalGroup): {
-	updateRate: number,
-	precision: number,
-}
-	local config = self.config
-	return {
-		updateRate = config.updateRate,
-		precision = math.sqrt(config.precisionSq),
-	}
-end
-
---[=[
-	Returns the current update rate of the group.
-
-	@method getUpdateRate
-	@within Group
-	@return number
-]=]
-function Group.getUpdateRate(self: Types.InternalGroup): number
-	return self.config.updateRate
-end
-
---[=[
-	Returns the current precision of the group.
-
-	@method getPrecision
-	@within Group
-	@return number
-]=]
-function Group.getPrecision(self: Types.InternalGroup): number
-	return math.sqrt(self.config.precisionSq)
+	local groups = State.entityToGroups[entity]
+	return groups and groups[self.id] == true or false
 end
 
 --[=[ 
@@ -687,18 +588,12 @@ end
 	@within Group
 ]=]
 function Group.destroy(self: Types.InternalGroup): ()
-	-- Must iterate backwards because remove() modifies array length
 	for i = #self.entities, 1, -1 do
 		self:remove(self.entities[i])
 	end
 
 	State.groupToObservers[self.id] = nil
 	State.groups[self.id] = nil
-
-	local listIdx = table.find(State.groupList, self)
-	if listIdx then
-		table.remove(State.groupList, listIdx)
-	end
 
 	setmetatable(self :: any, nil)
 end

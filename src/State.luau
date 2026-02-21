@@ -24,9 +24,13 @@ State.isDirty = false -- Forces spatial query for every entity
 
 State.groups = {} :: { [number]: Types.InternalGroup }
 State.groupToObservers = {} :: { [number]: { [number]: boolean } }
-State.groupList = {} :: { Types.InternalGroup }
-State.entityToGroup = {} :: { [Types.Entity]: number }
-State.entityMetadata = {} :: { [Types.Entity]: { [number]: any } }
+State.entityToGroups = {} :: { [Types.Entity]: { [number]: boolean } }
+State.entityData = {} :: { [Types.Entity]: Types.EntityData }
+State.entityMetadata = {} :: { [Types.Entity]: any }
+State.entityToObservers = {} :: { [Types.Entity]: { [number]: boolean } }
+
+State.buckets = {} :: { [number]: { Types.Entity } }
+State.bucketList = {} :: { number }
 
 State.observerTrackingEntities = {} :: { [number]: { [Types.Entity]: boolean } }
 State.observerPriorityMap = {} :: { [number]: number }
@@ -34,6 +38,8 @@ State.observerEnteredCallbacks = {} :: { [number]: { Types.Callback } }
 State.observerExitedCallbacks = {} :: { [number]: { Types.Callback } }
 State.observerEnabled = {} :: { [number]: boolean }
 State.observerSafety = {} :: { [number]: boolean }
+State.observerUpdateRate = {} :: { [number]: number }
+State.observerPrecisionSq = {} :: { [number]: number }
 
 State.zoneAttachedObservers = {} :: { [number]: { number } }
 State.zoneIdToZoneObj = {} :: { [number]: Types.InternalZone }

@@ -6,16 +6,34 @@ local RunService = game:GetService('RunService')
 local Config = require(script.Parent.Parent.Config)
 local Geometry = require(script.Parent.Parent.Core.Geometry)
 local LinearBVH = require(script.Parent.Parent.Core.LinearBVH)
+local updateProfile = require(script.Parent.Parent.Core.updateProfile)
 local State = require(script.Parent.Parent.State)
 local Types = require(script.Parent.Parent.Types)
 
 local IS_CLIENT = RunService:IsClient()
 
+local function updateAllEntitiesForObserver(observerId: number)
+	for groupId, observers in State.groupToObservers do
+		if not observers[observerId] then
+			continue
+		end
+
+		local group = State.groups[groupId]
+		if not group then
+			continue
+		end
+
+		for _, entity in group.entities do
+			updateProfile(entity)
+		end
+	end
+end
+
 local function disconnectObserverFromGroup(observerId: number, group: Types.InternalGroup)
 	local safety = State.observerSafety[observerId]
 
 	for _, entity in group.entities do
-		local data = group.entityData[entity]
+		local data = State.entityData[entity]
 
 		local oldZoneId = data.activeObserverMemberships[observerId]
 		if not oldZoneId then
@@ -39,6 +57,8 @@ local function disconnectObserverFromGroup(observerId: number, group: Types.Inte
 				end
 			end
 		end
+
+		updateProfile(entity)
 	end
 end
 
@@ -74,10 +94,12 @@ Observer.__index = Observer
 	@return Observer
 ]=]
 function Observer.new(config: {
+	groups: { Types.Group }?,
 	priority: number?,
+	updateRate: number?,
+	precision: number?,
 	enabled: boolean?,
 	safety: boolean?,
-	groups: { Types.Group }?,
 }?): Types.Observer
 	local id = State.nextObserverId
 	State.nextObserverId += 1
@@ -87,12 +109,15 @@ function Observer.new(config: {
 	}, Observer) :: any
 
 	State.observerPriorityMap[id] = config and config.priority or 0
+	State.observerUpdateRate[id] = config and config.updateRate or Config.Observer.updateRate
+	State.observerPrecisionSq[id] = (config and config.precision or Config.Observer.precision) ^ 2
+
 	State.observerEnteredCallbacks[id] = {}
 	State.observerExitedCallbacks[id] = {}
 	State.observerTrackingEntities[id] = {}
 	State.observerIdToObserverObj[id] = self
-	State.observerEnabled[id] = true
-	State.observerSafety[id] = if config and config.safety ~= nil then config.safety else Config.Scheduler.safety
+	State.observerEnabled[id] = if config and config.enabled ~= nil then config.enabled else true
+	State.observerSafety[id] = if config and config.safety ~= nil then config.safety else Config.Observer.safety
 
 	if config and config.groups then
 		for _, group in config.groups do
@@ -122,6 +147,11 @@ function Observer.subscribe(self: Types.InternalObserver, group: Types.InternalG
 		State.groupToObservers[groupId] = {}
 	end
 	State.groupToObservers[groupId][self.id] = true
+
+	for _, entity in group.entities do
+		updateProfile(entity)
+	end
+
 	return self
 end
 
@@ -515,44 +545,46 @@ function Observer.observeGroup(
 	local cleanups = {} :: { [number]: () -> () }
 
 	return self:observe(function(entity, zone, _)
-		local groupId = State.entityToGroup[entity]
-		if not groupId then
+		local groups = State.entityToGroups[entity]
+		if not groups then
 			return
 		end
 
-		local group = State.groups[groupId]
-		if not group then
-			return
-		end
-
-		if not activeMembers[groupId] then
-			activeMembers[groupId] = {}
-		end
-
-		if next(activeMembers[groupId]) == nil then
-			activeMembers[groupId][entity] = true
-			local groupCleanup = callback(group, zone)
-			if typeof(groupCleanup) == 'function' then
-				cleanups[groupId] = groupCleanup
+		for groupId, _ in groups do
+			local group = State.groups[groupId]
+			if not group or not State.groupToObservers[groupId][self.id] then
+				continue
 			end
-		else
-			activeMembers[groupId][entity] = true
+
+			if not activeMembers[groupId] then
+				activeMembers[groupId] = {}
+			end
+
+			if next(activeMembers[groupId]) == nil then
+				activeMembers[groupId][entity] = true
+				local groupCleanup = callback(group, zone)
+				if typeof(groupCleanup) == 'function' then
+					cleanups[groupId] = groupCleanup
+				end
+			else
+				activeMembers[groupId][entity] = true
+			end
 		end
 
 		return function()
-			local members = activeMembers[groupId]
-			if not members then
-				return
-			end
+			for groupId, members in activeMembers do
+				if not members[entity] then
+					continue
+				end
 
-			members[entity] = nil
-
-			if next(members) == nil then
-				activeMembers[groupId] = nil
-				local groupCleanup = cleanups[groupId]
-				if groupCleanup then
-					groupCleanup()
-					cleanups[groupId] = nil
+				members[entity] = nil
+				if next(members) == nil then
+					activeMembers[groupId] = nil
+					local groupCleanup = cleanups[groupId]
+					if groupCleanup then
+						groupCleanup()
+						cleanups[groupId] = nil
+					end
 				end
 			end
 		end
@@ -574,37 +606,41 @@ function Observer.onGroupEntered(self: Types.InternalObserver, callback: (Types.
 	local activeMembers = {} :: { [number]: { [Types.Entity]: boolean } }
 
 	return self:observe(function(entity, zone, _)
-		local groupId = State.entityToGroup[entity]
-		if not groupId then
+		local groups = State.entityToGroups[entity]
+		if not groups then
 			return
 		end
 
-		local group = State.groups[groupId]
-		if not group then
-			return
-		end
+		for groupId, _ in groups do
+			if not State.groupToObservers[groupId] or not State.groupToObservers[groupId][self.id] then
+				continue
+			end
 
-		if not activeMembers[groupId] then
-			activeMembers[groupId] = {}
-		end
+			if not activeMembers[groupId] then
+				activeMembers[groupId] = {}
+			end
 
-		local isFirst = next(activeMembers[groupId]) == nil
-		activeMembers[groupId][entity] = true
+			local isFirst = next(activeMembers[groupId]) == nil
+			activeMembers[groupId][entity] = true
 
-		if isFirst then
-			callback(group, zone)
+			if isFirst then
+				local group = State.groups[groupId]
+				if group then
+					callback(group, zone)
+				end
+			end
 		end
 
 		return function()
-			local members = activeMembers[groupId]
-			if not members then
-				return
-			end
+			for groupId, members in activeMembers do
+				if not members[entity] then
+					continue
+				end
 
-			members[entity] = nil
-
-			if next(members) == nil then
-				activeMembers[groupId] = nil
+				members[entity] = nil
+				if next(members) == nil then
+					activeMembers[groupId] = nil
+				end
 			end
 		end
 	end)
@@ -624,33 +660,36 @@ function Observer.onGroupExited(self: Types.InternalObserver, callback: (Types.G
 	local activeMembers = {} :: { [number]: { [Types.Entity]: boolean } }
 
 	return self:observe(function(entity, zone, _)
-		local groupId = State.entityToGroup[entity]
-		if not groupId then
+		local groups = State.entityToGroups[entity]
+		if not groups then
 			return
 		end
 
-		local group = State.groups[groupId]
-		if not group then
-			return
-		end
-
-		if not activeMembers[groupId] then
-			activeMembers[groupId] = {}
-		end
-
-		activeMembers[groupId][entity] = true
-
-		return function()
-			local members = activeMembers[groupId]
-			if not members then
-				return
+		for groupId, _ in groups do
+			if not State.groupToObservers[groupId] or not State.groupToObservers[groupId][self.id] then
+				continue
 			end
 
-			members[entity] = nil
+			if not activeMembers[groupId] then
+				activeMembers[groupId] = {}
+			end
+			activeMembers[groupId][entity] = true
+		end
 
-			if next(members) == nil then
-				activeMembers[groupId] = nil
-				callback(group, zone)
+		return function()
+			for groupId, members in activeMembers do
+				if not members[entity] then
+					continue
+				end
+
+				members[entity] = nil
+				if next(members) == nil then
+					activeMembers[groupId] = nil
+					local group = State.groups[groupId]
+					if group then
+						callback(group, zone)
+					end
+				end
 			end
 		end
 	end)
@@ -676,22 +715,22 @@ function Observer.setEnabled(self: Types.InternalObserver, enabled: boolean): Ty
 	State.observerEnabled[id] = enabled
 	State.isDirty = true
 
-	if enabled then
-		return self
+	if not enabled then
+		for groupId, observersMap in State.groupToObservers do
+			if not observersMap[id] then
+				continue
+			end
+
+			local group = State.groups[groupId]
+			if not group then
+				continue
+			end
+
+			disconnectObserverFromGroup(id, group)
+		end
 	end
 
-	for groupId, observersMap in State.groupToObservers do
-		if not observersMap[id] then
-			continue
-		end
-
-		local group = State.groups[groupId]
-		if not group then
-			continue
-		end
-
-		disconnectObserverFromGroup(id, group)
-	end
+	updateAllEntitiesForObserver(self.id)
 
 	return self
 end
@@ -720,6 +759,36 @@ end
 function Observer.setPriority(self: Types.InternalObserver, p: number): Types.Observer
 	State.observerPriorityMap[self.id] = p
 	State.isDirty = true
+	return self
+end
+
+--[=[ 
+	Updates the update frequency for this observer.
+
+	@method setUpdateRate
+	@within Observer
+	@param hz number
+	@return Observer
+]=]
+function Observer.setUpdateRate(self: Types.InternalObserver, hz: number): Types.Observer
+	assert(hz >= 0, '[QuickZone] updateRate must be non-negative')
+	State.observerUpdateRate[self.id] = hz
+	updateAllEntitiesForObserver(self.id)
+	return self
+end
+
+--[=[ 
+	Updates the precision in studs for this observer.
+
+	@method setPrecision
+	@within Observer
+	@param n number
+	@return Observer
+]=]
+function Observer.setPrecision(self: Types.InternalObserver, n: number): Types.Observer
+	assert(n >= 0, '[QuickZone] precision must be non-negative')
+	State.observerPrecisionSq[self.id] = n ^ 2
+	updateAllEntitiesForObserver(self.id)
 	return self
 end
 
@@ -783,13 +852,7 @@ end
 	@return boolean
 ]=]
 function Observer.isEntityInside(self: Types.InternalObserver, entity: Types.Entity): boolean
-	local groupId = State.entityToGroup[entity]
-	if not groupId then
-		return false
-	end
-
-	local group = State.groups[groupId]
-	local data = group.entityData[entity]
+	local data = State.entityData[entity]
 	if not data then
 		return false
 	end
@@ -873,7 +936,29 @@ end
 	@return number
 ]=]
 function Observer.getPriority(self: Types.InternalObserver): number
-	return State.observerPriorityMap[self.id] or 0
+	return State.observerPriorityMap[self.id]
+end
+
+--[=[ 
+	Returns the current update frequency for this observer.
+
+	@method getUpdateRate
+	@within Observer
+	@return number
+]=]
+function Observer.getUpdateRate(self: Types.InternalObserver): number
+	return State.observerUpdateRate[self.id]
+end
+
+--[=[ 
+	Updates the precision for this observer.
+
+	@method getPrecision
+	@within Observer
+	@return number
+]=]
+function Observer.getPrecision(self: Types.InternalObserver): number
+	return math.sqrt(State.observerPrecisionSq[self.id])
 end
 
 --[=[ 

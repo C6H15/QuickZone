@@ -33,7 +33,7 @@ export type QuickZone = {
 	setFrameBudget: (self: QuickZone, ms: number) -> QuickZone,
 	getZonesAtPoint: (self: QuickZone, position: Vector3) -> { Zone },
 	getObserversAtPoint: (self: QuickZone, position: Vector3) -> { Observer },
-	getGroupOfEntity: (self: QuickZone, entity: Entity) -> Group?,
+	getGroupsOfEntity: (self: QuickZone, entity: Entity) -> { Group },
 	getZones: (self: QuickZone) -> { Zone },
 	getObservers: (self: QuickZone) -> { Observer },
 	getGroups: (self: QuickZone) -> { Group },
@@ -94,10 +94,12 @@ export type Callback = (Entity, Zone, any?) -> ()
 export type ObserverClass = {
 	new: (
 		config: {
+			groups: { Group }?,
 			priority: number?,
+			updateRate: number?,
+			precision: number?,
 			enabled: boolean?,
 			safety: boolean?,
-			groups: { Group }?,
 		}?
 	) -> Observer,
 }
@@ -106,6 +108,8 @@ export type Observer = {
 	subscribe: (self: Observer, group: Group) -> Observer,
 	unsubscribe: (self: Observer, group: Group) -> Observer,
 	setPriority: (self: Observer, n: number) -> Observer,
+	setUpdateRate: (self: Observer, hz: number) -> Observer,
+	setPrecision: (self: Observer, n: number) -> Observer,
 	setEnabled: (self: Observer, enabled: boolean) -> Observer,
 	setSafety: (self: Observer, enabled: boolean) -> Observer,
 	isEnabled: (self: Observer) -> boolean,
@@ -117,6 +121,8 @@ export type Observer = {
 	getEntitiesInside: (self: Observer) -> { Entity },
 	getId: (self: Observer) -> number,
 	getPriority: (self: Observer) -> number,
+	getUpdateRate: (self: Observer) -> number,
+	getPrecision: (self: Observer) -> number,
 	getZones: (self: Observer) -> { Zone },
 	getGroups: (self: Observer) -> { Group },
 	observe: (self: Observer, callback: (Entity, Zone, any?) -> (() -> ())?) -> () -> (),
@@ -140,18 +146,15 @@ export type InternalObserver = Observer & {
 
 export type GroupClass = {
 	new: (config: {
-		updateRate: number?,
-		precision: number?,
+		tag: string?,
 		entities: { Entity }?,
 	}?) -> Group,
 	players: (config: {
-		updateRate: number?,
-		precision: number?,
+		tag: string?,
 		entities: { Entity }?,
 	}?) -> Group,
 	localPlayer: (config: {
-		updateRate: number?,
-		precision: number?,
+		tag: string?,
 		entities: { Entity }?,
 	}?) -> Group,
 }
@@ -162,21 +165,9 @@ export type Group = {
 	remove: (self: Group, entity: Entity) -> Group,
 	removeBulk: (self: Group, entities: { Entity }) -> Group,
 	clear: (self: Group) -> Group,
-	setConfig: (self: Group, {
-		updateRate: number?,
-		precision: number?,
-	}) -> Group,
-	setUpdateRate: (self: Group, updateRate: number) -> Group,
-	setPrecision: (self: Group, precision: number) -> Group,
-	getUpdateRate: (self: Group) -> number,
-	getPrecision: (self: Group) -> number,
 	getId: (self: Group) -> number,
 	getEntities: (self: Group) -> { Entity },
 	getObservers: (self: Group) -> { Observer },
-	getConfig: (self: Group) -> {
-		updateRate: number,
-		precision: number,
-	},
 	contains: (self: Group, entity: Entity) -> boolean,
 	destroy: (self: Group) -> (),
 }
@@ -185,11 +176,6 @@ export type InternalGroup = Group & {
 	id: number,
 	entities: { Entity },
 	entityIndices: { [Entity]: number },
-	entityData: { [Entity]: EntityData },
-	config: {
-		updateRate: number,
-		precisionSq: number,
-	},
 }
 
 --[=[
@@ -225,6 +211,9 @@ export type EntityData = {
 	lastPosition: Vector3,
 	strategy: number,
 	isDirty: boolean,
+	precisionSq: number,
+	updateRate: number,
+	bucketIndex: number,
 }
 
 return nil

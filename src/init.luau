@@ -152,12 +152,20 @@ end
 	@param entity Entity -- The Part, Model, or Table entity.
 	@return Group?
 ]=]
-function QuickZone:getGroupOfEntity(entity: Types.Entity): Types.Group?
-	local groupId = State.entityToGroup[entity]
-	if groupId then
-		return State.groups[groupId]
+function QuickZone:getGroupsOfEntity(entity: Types.Entity): { Types.Group }
+	local groupIds: { [number]: boolean } = State.entityToGroups[entity]
+	if not groupIds then
+		return {}
 	end
-	return nil
+
+	local results = {}
+	for groupId, _ in groupIds do
+		local group = State.groups[groupId]
+		if group then
+			table.insert(results, group)
+		end
+	end
+	return results
 end
 
 --[=[ 
