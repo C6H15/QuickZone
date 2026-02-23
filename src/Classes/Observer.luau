@@ -34,9 +34,16 @@ local function disconnectObserverFromGroup(observerId: number, group: Types.Inte
 
 	for _, entity in group.entities do
 		local data = State.entityData[entity]
+		if not data then
+			continue
+		end
 
+		updateProfile(entity)
+
+		local activeObservers = State.entityToObservers[entity] or {}
 		local oldZoneId = data.activeObserverMemberships[observerId]
-		if not oldZoneId then
+
+		if not oldZoneId or activeObservers[observerId] then
 			continue
 		end
 
@@ -46,19 +53,19 @@ local function disconnectObserverFromGroup(observerId: number, group: Types.Inte
 		end
 
 		local cbs = State.observerExitedCallbacks[observerId]
-		if cbs then
-			local z = State.zoneIdToZoneObj[oldZoneId]
-			local cd = State.entityMetadata[entity]
-			for _, fn in cbs do
-				if safety then
-					task.spawn(fn, entity, z, cd)
-				else
-					fn(entity, z, cd)
-				end
-			end
+		if not cbs then
+			continue
 		end
 
-		updateProfile(entity)
+		local z = State.zoneIdToZoneObj[oldZoneId]
+		local cd = State.entityMetadata[entity]
+		for _, fn in cbs do
+			if safety then
+				task.spawn(fn, entity, z, cd)
+			else
+				fn(entity, z, cd)
+			end
+		end
 	end
 end
 
@@ -78,6 +85,8 @@ Observer.__index = Observer
 	```lua
 	local observer = QuickZone.Observer.new({
 		priority = 20, -- The priority value is used to resolve overlaps
+		updateRate = 20, -- Check at 20Hz
+		precision = 0.5, -- Ignore movement smaller than 0.5 studs
 		enabled = false, -- Observer will not start processing spatial checks
 		safety = false, -- Do not wrap callbacks in task.spawn
 		groups = { enemyGroup, playerGroup } -- Immediately subscribe to these groups
@@ -164,11 +173,14 @@ end
 	@return Observer
 ]=]
 function Observer.unsubscribe(self: Types.InternalObserver, group: Types.InternalGroup): Types.Observer
-	disconnectObserverFromGroup(self.id, group)
 	local groupId = group.id
+
 	if State.groupToObservers[groupId] then
 		State.groupToObservers[groupId][self.id] = nil
 	end
+
+	disconnectObserverFromGroup(self.id, group)
+
 	return self
 end
 
@@ -713,7 +725,7 @@ function Observer.setEnabled(self: Types.InternalObserver, enabled: boolean): Ty
 
 	local id = self.id
 	State.observerEnabled[id] = enabled
-	State.isDirty = true
+	State.spatialVersion += 1
 
 	if not enabled then
 		for groupId, observersMap in State.groupToObservers do
@@ -758,7 +770,7 @@ end
 ]=]
 function Observer.setPriority(self: Types.InternalObserver, p: number): Types.Observer
 	State.observerPriorityMap[self.id] = p
-	State.isDirty = true
+	State.spatialVersion += 1
 	return self
 end
 
@@ -1094,7 +1106,7 @@ function Observer.destroy(self: Types.InternalObserver): ()
 	State.observerEnabled[id] = nil
 	State.observerSafety[id] = nil
 
-	State.isDirty = true
+	State.spatialVersion += 1
 	setmetatable(self :: any, nil)
 end
 

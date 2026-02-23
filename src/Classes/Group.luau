@@ -111,8 +111,6 @@ Group.__index = Group
 
 	```lua
 	local myGroup = Group.new({
-		updateRate = 20, -- Check at 20Hz
-		precision = 0.5, -- Ignore movement smaller than 0.5 studs
 		entities = { NPC1, NPC2, NPC3 } -- Add entities
 	})
 	```
@@ -408,7 +406,7 @@ function Group.add(self: Types.InternalGroup, entity: Types.Entity, metadata: an
 		State.entityData[entity] = {
 			strategy = strat,
 			lastPosition = Vector3.zero,
-			isDirty = true,
+			lastSpatialVersion = 0,
 			activeObserverMemberships = {},
 			precisionSq = DEFAULT_PRECISION_SQ,
 			updateRate = DEFAULT_UPDATE_RATE,
@@ -466,17 +464,26 @@ function Group.remove(self: Types.InternalGroup, entity: Types.Entity): Types.Gr
 	State.entityToGroups[entity][self.id] = nil
 	local data = State.entityData[entity]
 
-	-- Trigger exit events for Observers that are actively tracking this entity
-	for observerId, oldZoneId in data.activeObserverMemberships do
-		local stillWatched = false
-		for remainingGroupId, _ in State.entityToGroups[entity] do
-			if State.groupToObservers[remainingGroupId] and State.groupToObservers[remainingGroupId][observerId] then
-				stillWatched = true
-				break
-			end
-		end
+	local idx = self.entityIndices[entity]
+	local lastIdx = #self.entities
+	local lastEntity = self.entities[lastIdx]
 
-		if not stillWatched then
+	if idx == lastIdx then
+		self.entities[lastIdx] = nil
+		self.entityIndices[entity] = nil
+	else
+		self.entities[idx] = lastEntity
+		self.entityIndices[lastEntity] = idx
+		self.entities[lastIdx] = nil
+		self.entityIndices[entity] = nil
+	end
+
+	updateProfile(entity)
+
+	local activeObservers = State.entityToObservers[entity] or {}
+
+	for observerId, oldZoneId in data.activeObserverMemberships do
+		if not activeObservers[observerId] then
 			data.activeObserverMemberships[observerId] = nil
 			if State.observerTrackingEntities[observerId] then
 				State.observerTrackingEntities[observerId][entity] = nil
@@ -498,27 +505,11 @@ function Group.remove(self: Types.InternalGroup, entity: Types.Entity): Types.Gr
 		end
 	end
 
-	-- Swap-remove from Array
-	local idx = self.entityIndices[entity]
-	local lastIdx = #self.entities
-	local lastEntity = self.entities[lastIdx]
-
-	if idx == lastIdx then
-		self.entities[lastIdx] = nil
-		self.entityIndices[entity] = nil
-	else
-		self.entities[idx] = lastEntity
-		self.entityIndices[lastEntity] = idx
-		self.entities[lastIdx] = nil
-		self.entityIndices[entity] = nil
-	end
-
-	updateProfile(entity)
-
 	if next(State.entityToGroups[entity]) == nil then
 		State.entityData[entity] = nil
 		State.entityToGroups[entity] = nil
 		State.entityMetadata[entity] = nil
+		State.entityToObservers[entity] = nil
 	end
 
 	return self

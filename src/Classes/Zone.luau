@@ -367,7 +367,7 @@ function Zone.attach(self: Types.InternalZone, observer: Types.InternalObserver)
 		table.insert(attached, observer.id)
 	end
 
-	State.isDirty = true
+	State.spatialVersion += 1
 	return self
 end
 
@@ -394,7 +394,7 @@ function Zone.detach(self: Types.InternalZone, observer: Types.InternalObserver)
 	if #attached == 0 then
 		State.zoneAttachedObservers[self.id] = nil
 	end
-	State.isDirty = true
+	State.spatialVersion += 1
 
 	return self
 end
@@ -537,8 +537,7 @@ function Zone.setShape(self: Types.InternalZone, shape: Types.ShapeType): Types.
 		staticTypes[self.id] = shapeType
 	end
 
-	-- Changing the shape doesn't need a rebuild.
-	State.isDirty = true
+	State.spatialVersion += 1
 	return self
 end
 

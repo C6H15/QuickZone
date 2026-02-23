@@ -20,7 +20,7 @@ State.staticRootNode = nil :: Types.Node?
 State.dynamicRootNode = nil :: Types.Node?
 State.pendingStaticRebuild = false
 State.pendingDynamicRebuild = false
-State.isDirty = false -- Forces spatial query for every entity
+State.spatialVersion = 1
 
 State.groups = {} :: { [number]: Types.InternalGroup }
 State.groupToObservers = {} :: { [number]: { [number]: boolean } }

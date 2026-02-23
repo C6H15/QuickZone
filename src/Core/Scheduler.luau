@@ -104,13 +104,13 @@ RunService.PostSimulation:Connect(function(dt: number)
 	if State.pendingDynamicRebuild then
 		State.dynamicRootNode = LinearBVH.build(State.dynamicCFrames, State.dynamicHalfSizes)
 		State.pendingDynamicRebuild = false
-		State.isDirty = true
+		State.spatialVersion += 1
 	end
 
 	if State.pendingStaticRebuild then
 		State.staticRootNode = LinearBVH.build(State.staticCFrames, State.staticHalfSizes)
 		State.pendingStaticRebuild = false
-		State.isDirty = true
+		State.spatialVersion += 1
 	end
 
 	if (os.clock() - start) > frameBudget then
@@ -137,8 +137,7 @@ RunService.PostSimulation:Connect(function(dt: number)
 		nextBucketIndex = 1
 	end
 
-	local forceRefresh = State.isDirty
-	State.isDirty = false
+	local spatialVersion = State.spatialVersion
 
 	-- Round-robin scheduling to prevent starvation
 	for _ = 1, numBuckets do
@@ -197,7 +196,8 @@ RunService.PostSimulation:Connect(function(dt: number)
 			end
 
 			-- Threshold
-			local shouldCheck = forceRefresh or data.isDirty
+			local shouldCheck = data.lastSpatialVersion ~= spatialVersion
+
 			if not shouldCheck then
 				local lp = data.lastPosition
 				local dx, dy, dz = pos.X - lp.X, pos.Y - lp.Y, pos.Z - lp.Z
@@ -208,7 +208,7 @@ RunService.PostSimulation:Connect(function(dt: number)
 
 			if shouldCheck then
 				data.lastPosition = pos
-				data.isDirty = false
+				data.lastSpatialVersion = spatialVersion
 
 				ctx_linkedObservers = entityToObservers[entity]
 
