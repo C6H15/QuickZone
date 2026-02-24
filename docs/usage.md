@@ -51,7 +51,7 @@ zone:attach(observer)
 Zones represent physical areas in the world. They are mathematical boundaries that can be static (fixed in space) or dynamic (following a part). They can be created from existing parts or defined manually with a CFrame and Size.
 
 ### Bulk Creation
-The easiest way to create zones is using the bulk constructors. Both `fromParts` and `fromTag` return a Zones collection object, which acts as a logical unit allowing you to manage multiple zones at once.
+The easiest way to create zones is using the bulk constructors. The `fromParts`, `fromDescendants`, `fromChildren`, and `fromTag` return a Zones collection object, which acts as a logical unit allowing you to manage multiple zones at once.
 
 ```lua
 -- Create zones from a CollectionService tag
@@ -62,6 +62,12 @@ local lavaZones = Zone.fromTag('Lava', {
 
 -- Create zones from an array of parts
 local safeZones = Zone.fromParts(workspace.SafeZones:GetChildren())
+
+-- Create zones from all BaseParts inside a Model or Folder (Deep search)
+local hazardZones = Zone.fromDescendants(workspace.TrapModel)
+
+-- Create zones from only the direct children of a Folder (Shallow search)
+local flatZones = Zone.fromChildren(workspace.FlatFolder)
 
 -- You can attach an observer to the entire collection at once
 safeZones:attach(invincibilityObserver)
@@ -132,12 +138,11 @@ You can add BaseParts, Models, Attachments, Bones, or tables with a Position.
 
 ```lua
 -- Add a Model (tracks the PrimaryPart or Pivot)
--- Note: 'metadata' applies to the entity, not the group.
-enemies:add(npcModel, { Team = 'Red' })
+enemies:add(npcModel)
 
 -- Add a specific Attachment (tracks the exact point)
 -- This is great for offsets if you do not want to track the middle of a part (e.g. sword tip)
-enemies:add(sword.TipAttachment, { Damage = 75 })
+enemies:add(sword.TipAttachment)
 
 -- Add a table
 local spell = { Position = Vector3.new(10, 5, 0) }
@@ -146,8 +151,6 @@ enemies:add(spell)
 -- Clear the enemies group when done
 enemies:clear()
 ```
-
-_Note: The second argument (`metadata`) is optional and will be passed to your event callbacks._
 
 ## 3. Observers
 
@@ -172,7 +175,7 @@ For logic that should persist while an entity is inside a zone (e.g., UI, music,
 
 ```lua
 -- Generic observation
-observer:observe(function(entity, zone, metadata)
+observer:observe(function(entity, zone)
 	print('Entered', entity)
 	local highlight = Instance.new('Highlight', entity)
 	
@@ -220,10 +223,10 @@ For logic that happens exactly once on entry or exit (e.g., playing a sound effe
 
 ```lua
 -- Individual entity events
-observer:onEntered(function(entity, zone, metadata)
+observer:onEntered(function(entity, zone)
 	print(entity.Name .. ' entered ' .. zone:getId())
 end)
-observer:onExited(function(entity, zone, metadata)
+observer:onExited(function(entity, zone)
 	print(entity.Name .. ' exited ' .. zone:getId())
 end)
 

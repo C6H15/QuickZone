@@ -100,6 +100,8 @@ local function createSubTree(
 end
 
 function LinearBVH.build(cframes: { [number]: CFrame }, halfSizes: { [number]: Vector3 }): Types.Node?
+	-- Pool per unique list reference (static and dynamic) to allow reuse.
+	-- We don't need to clear the cache, since we track count separately.
 	local pool = treePools[cframes]
 	if not pool then
 		pool = {

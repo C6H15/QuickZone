@@ -74,7 +74,7 @@ This test highlights the fundamental flaw in traditional Zone-Centric libraries.
 The package name + version is
 
 ```
-ldgerrits/quickzone@^0.5.0
+ldgerrits/quickzone@^1.0.0
 ```
 
 ### Manual
