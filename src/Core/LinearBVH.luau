@@ -9,6 +9,7 @@ local NEGATIVE_HUGE_VECTOR = -HUGE_VECTOR
 
 local unionBounds = Geometry.unionBounds
 local getObjectBounds = Geometry.getObjectBounds
+local getMortonScale = Geometry.getMortonScale
 local positionToMortonCode = Geometry.positionToMortonCode
 
 type ListEntity = {
@@ -120,11 +121,12 @@ function LinearBVH.build(cframes: { [number]: CFrame }, halfSizes: { [number]: V
 	-- Add padding to avoid edge cases with flat scenes
 	local padding = vector.max(vector.one, (max - min) * 0.01)
 	local sceneMin, sceneMax = min - padding, max + padding
+	local scaleX, scaleY, scaleZ = getMortonScale(sceneMin, sceneMax)
 
 	for i = 1, count do
 		local entry = listCache[i]
 		local pos = cframes[entry.id].Position -- Fast property access
-		entry.mortonCode = positionToMortonCode(pos, sceneMin, sceneMax)
+		entry.mortonCode = positionToMortonCode(pos, sceneMin, scaleX, scaleY, scaleZ)
 	end
 
 	-- Remove unused cached entries at tail
