@@ -7,12 +7,18 @@ local function updateProfile(entity: Types.Entity)
 		return
 	end
 
-	-- Track linked observers for quick lookup during processing
-	local linkedObservers = {}
+	-- Track linked observers for quick lookup in hot loop
+	local linkedObservers = State.entityToObservers[entity]
+	if linkedObservers then
+		table.clear(linkedObservers)
+	else
+		linkedObservers = {}
+	end
 
-	-- Find the highest settings across all subscribed observers
 	local minPrecSq = math.huge
 	local maxRate = 0
+
+	-- Find the highest settings across all subscribed observers
 	for groupId, _ in groups do
 		local observers = State.groupToObservers[groupId]
 		if not observers then
@@ -35,7 +41,7 @@ local function updateProfile(entity: Types.Entity)
 	end
 
 	local data = State.entityData[entity]
-	local currentRate = data.effectiveRate
+	local currentRate = data.updateRate
 
 	-- Swap buckets
 	if currentRate ~= maxRate then
@@ -43,17 +49,20 @@ local function updateProfile(entity: Types.Entity)
 		if currentRate and currentRate > 0 and State.buckets[currentRate] then
 			local oldBucket = State.buckets[currentRate]
 			local idx = data.bucketIndex
-			local lastEntity = oldBucket[#oldBucket]
+			local maxEntities = #oldBucket
+			local lastEntity = oldBucket[maxEntities]
 
-			oldBucket[idx] = lastEntity
-			if State.entityData[lastEntity] then
-				State.entityData[lastEntity].bucketIndex = idx
+			-- We swap and then pop to avoid shifting all entities down
+			if idx ~= maxEntities then
+				oldBucket[idx] = lastEntity
+				if State.entityData[lastEntity] then
+					State.entityData[lastEntity].bucketIndex = idx
+				end
 			end
 
-			local maxEntities = #oldBucket
 			oldBucket[maxEntities] = nil
 
-			if maxEntities == 0 then
+			if maxEntities == 1 then -- destroy empty bucket
 				State.buckets[currentRate] = nil
 				local listIdx = table.find(State.bucketList, currentRate)
 				if listIdx then
@@ -66,26 +75,25 @@ local function updateProfile(entity: Types.Entity)
 		if maxRate > 0 then
 			if not State.buckets[maxRate] then
 				State.buckets[maxRate] = {}
-
 				table.insert(State.bucketList, maxRate)
 				table.sort(State.bucketList, function(a, b)
 					return a > b
 				end)
 			end
+
 			local newBucket = State.buckets[maxRate]
 			local newIdx = #newBucket + 1
 			newBucket[newIdx] = entity
-
 			data.bucketIndex = newIdx
 		else
 			data.bucketIndex = 0 -- Entity is not in a bucket, so no processing
 		end
 
-		data.effectiveRate = maxRate
+		data.updateRate = maxRate
 	end
 
 	if maxRate > 0 then
-		data.effectivePrecisionSq = minPrecSq
+		data.precisionSq = minPrecSq
 		State.entityToObservers[entity] = linkedObservers
 	else
 		State.entityToObservers[entity] = nil

@@ -16,7 +16,6 @@ local STRAT_CFRAME = Config.Strategy.CFRAME
 local STRAT_PIVOT = Config.Strategy.PIVOT
 
 local DEFAULT_PRECISION_SQ = Config.Observer.precision ^ 2
-local DEFAULT_UPDATE_RATE = Config.Observer.updateRate
 
 local IS_CLIENT = RunService:IsClient()
 
@@ -382,9 +381,9 @@ function Group.add(self: Types.InternalGroup, entity: Types.Entity): Types.Group
 			lastPosition = Vector3.zero,
 			lastSpatialVersion = 0,
 			activeObserverMemberships = {},
-			precisionSq = DEFAULT_PRECISION_SQ,
-			updateRate = DEFAULT_UPDATE_RATE,
-			bucketIndex = 0,
+			precisionSq = DEFAULT_PRECISION_SQ, -- Updated in updateProfile
+			updateRate = -1, -- Updated in updateProfile
+			bucketIndex = 0, -- Updated in updateProfile
 		}
 	end
 
