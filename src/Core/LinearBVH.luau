@@ -85,7 +85,6 @@ function LinearBVH.build(cframes: { [number]: CFrame }, halfSizes: { [number]: V
 	table.clear(traversalStack)
 	table.clear(objMinCache)
 	table.clear(objMaxCache)
-	table.clear(listCache)
 
 	local min = HUGE_VECTOR
 	local max = NEGATIVE_HUGE_VECTOR
@@ -128,14 +127,14 @@ function LinearBVH.build(cframes: { [number]: CFrame }, halfSizes: { [number]: V
 		entry.mortonCode = positionToMortonCode(pos, sceneMin, sceneMax)
 	end
 
-	table.sort(listCache, function(a, b)
-		return a.mortonCode < b.mortonCode
-	end)
-
 	-- Remove unused cached entries at tail
 	for i = count + 1, #listCache do
 		listCache[i] = nil
 	end
+
+	table.sort(listCache, function(a, b)
+		return a.mortonCode < b.mortonCode
+	end)
 
 	return createSubTree(listCache, objMinCache, objMaxCache, 1, count)
 end
