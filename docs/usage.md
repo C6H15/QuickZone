@@ -111,7 +111,7 @@ dynamicZone:syncToPart()
 ```
 
 ## 2. Groups
-Groups are collections of entities (Parts, Models, Players, etc.). They allow you to categorize entities and set unique performance settings per category.
+Groups are collections of entities (Parts, Models, Players, etc.).
 
 ### Specialized Groups
 QuickZone provides built-in abstractions that automatically handle player lifecyles.
