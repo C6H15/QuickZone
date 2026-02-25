@@ -74,7 +74,7 @@ This test highlights the fundamental flaw in traditional Zone-Centric libraries.
 The package name + version is
 
 ```
-ldgerrits/quickzone@^1.0.0
+ldgerrits/quickzone@^1.1.0
 ```
 
 ### Manual
@@ -153,6 +153,6 @@ end)
 
 -- Create a Zones object from a folder of parts.
 -- The returned 'zones' object allows you to manage the entire collection at once.
-local zones = Zone.fromParts(workspace.WaterParts:GetChildren())
+local zones = Zone.fromChildren(workspace.WaterParts)
 zones:attach(swimObserver)
 ```

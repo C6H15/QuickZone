@@ -14,9 +14,10 @@ local isPointInZone = Geometry.isPointInZone
 
 local zoneAttachedObservers = State.zoneAttachedObservers
 local observerPriorityMap = State.observerPriorityMap
-local observerEnteredCallbacks = State.observerEnteredCallbacks
 local observerTrackingEntities = State.observerTrackingEntities
+local observerEnteredCallbacks = State.observerEnteredCallbacks
 local observerExitedCallbacks = State.observerExitedCallbacks
+local observerTransitionedCallbacks = State.observerTransitionedCallbacks
 local observerEnabled = State.observerEnabled
 local observerSafety = State.observerSafety
 local zoneIdToZoneObj = State.zoneIdToZoneObj
@@ -31,6 +32,7 @@ local ctx_candidatePriority: { [number]: number } = table.create(16)
 local ctx_candidateIndex: { [number]: number } = table.create(16)
 local ctx_candidateList: { [number]: number } = table.create(16)
 local ctx_linkedObservers: { [number]: boolean }
+local ctx_currentMemberships: { [number]: number }
 
 local frameBudget = Config.Scheduler.frameBudget
 local nextBucketIndex = 1 -- Round-robin pointer
@@ -56,13 +58,19 @@ local function processZoneHit(zoneId: number)
 			and not ctx_candidatePriority[observerId]
 		then
 			local pri = observerPriorityMap[observerId] or 0
-			ctx_cCount += 1
-			ctx_candidateList[ctx_cCount] = observerId
-			ctx_candidateIndex[observerId] = zoneId
-			ctx_candidatePriority[observerId] = pri
 
-			if pri > ctx_highestWin then
-				ctx_highestWin = pri
+			if not ctx_candidatePriority[observerId] then
+				ctx_cCount += 1
+				ctx_candidateList[ctx_cCount] = observerId
+				ctx_candidateIndex[observerId] = zoneId
+				ctx_candidatePriority[observerId] = pri
+
+				if pri > ctx_highestWin then
+					ctx_highestWin = pri
+				end
+			elseif ctx_currentMemberships[observerId] == zoneId then
+				-- Hold onto the zone for transitions
+				ctx_candidateIndex[observerId] = zoneId
 			end
 		end
 	end
@@ -210,6 +218,7 @@ RunService.PostSimulation:Connect(function(dt: number)
 				data.lastSpatialVersion = spatialVersion
 
 				ctx_linkedObservers = entityToObservers[entity]
+				ctx_currentMemberships = data.activeObserverMemberships
 
 				ctx_pos = pos
 				ctx_cCount = 0
@@ -228,39 +237,76 @@ RunService.PostSimulation:Connect(function(dt: number)
 				-- Exits
 				for observerId, oldZoneId in current do
 					local newPri = ctx_candidatePriority[observerId]
-					if not newPri or newPri < ctx_highestWin then
-						current[observerId] = nil
-						if observerTrackingEntities[observerId] then
-							observerTrackingEntities[observerId][entity] = nil
-						end
-
-						local cbs = observerExitedCallbacks[observerId]
-						if cbs then
-							local safety = observerSafety[observerId]
-							local z = zoneIdToZoneObj[oldZoneId]
-							fireCallback(cbs, entity, z, safety)
-						end
+					if newPri and newPri >= ctx_highestWin then
+						continue
 					end
+
+					current[observerId] = nil
+					if observerTrackingEntities[observerId] then
+						observerTrackingEntities[observerId][entity] = nil
+					end
+
+					local cbs = observerExitedCallbacks[observerId]
+					if not cbs then
+						continue
+					end
+
+					local safety = observerSafety[observerId]
+					local z = zoneIdToZoneObj[oldZoneId]
+					fireCallback(cbs, entity, z, safety)
 				end
 
-				-- Entries
+				-- Entries & Transitions
 				for i = 1, ctx_cCount do
 					local observerId = ctx_candidateList[i]
 					local pri = ctx_candidatePriority[observerId]
-					if pri >= ctx_highestWin and not current[observerId] then
-						local zoneIdx = ctx_candidateIndex[observerId]
-						current[observerId] = zoneIdx
-						observerTrackingEntities[observerId][entity] = true
-						local cbs = observerEnteredCallbacks[observerId]
-						if cbs then
-							local safety = observerSafety[observerId]
-							local z = zoneIdToZoneObj[zoneIdx]
-							fireCallback(cbs, entity, z, safety)
-						end
-					end
+					local zoneIdx = ctx_candidateIndex[observerId]
+
 					ctx_candidatePriority[observerId] = nil
 					ctx_candidateIndex[observerId] = nil
 					ctx_candidateList[i] = nil
+
+					if pri < ctx_highestWin then
+						continue
+					end
+
+					local currentZoneId = current[observerId]
+					if currentZoneId == zoneIdx then
+						continue
+					end
+
+					-- Update the tracker.
+					current[observerId] = zoneIdx
+					local safety = observerSafety[observerId]
+
+					if not currentZoneId then -- New entry
+						observerTrackingEntities[observerId][entity] = true
+
+						local cbs = observerEnteredCallbacks[observerId]
+						if not cbs then
+							continue
+						end
+
+						local z = zoneIdToZoneObj[zoneIdx]
+						fireCallback(cbs, entity, z, safety)
+					else -- Transition
+						local cbs = observerTransitionedCallbacks[observerId]
+						if not cbs then
+							continue
+						end
+
+						local newZoneObj = zoneIdToZoneObj[zoneIdx]
+						local oldZoneObj = zoneIdToZoneObj[currentZoneId]
+						if safety then
+							for _, cb in cbs do
+								task.spawn(cb, entity, newZoneObj, oldZoneObj)
+							end
+						else
+							for _, cb in cbs do
+								cb(entity, newZoneObj, oldZoneObj)
+							end
+						end
+					end
 				end
 			end
 

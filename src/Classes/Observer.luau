@@ -122,6 +122,7 @@ function Observer.new(config: {
 
 	State.observerEnteredCallbacks[id] = {}
 	State.observerExitedCallbacks[id] = {}
+	State.observerTransitionedCallbacks[id] = {}
 	State.observerTrackingEntities[id] = {}
 	State.observerIdToObserverObj[id] = self
 	State.observerEnabled[id] = if config and config.enabled ~= nil then config.enabled else true
@@ -204,7 +205,7 @@ end
 	@method observe
 	@within Observer
 	@param callback (entity: Entity, zone: Zone) -> (() -> ())?
-	@return () -> () -- Function to stop observing entirely
+	@return () -> () -- Disconnect function
 ]=]
 function Observer.observe(self: Types.InternalObserver, callback: (Types.Entity, Types.Zone) -> (() -> ())?): () -> ()
 	local cleanups = {} :: { [Types.Entity]: () -> () }
@@ -266,7 +267,7 @@ end
 	@method onEntered
 	@within Observer
 	@param callback (entity: Entity, zone: Zone) -> ()
-	@return () -> () -- A function that, when called, disconnects the callback.
+	@return () -> () -- Disconnect function
 ]=]
 function Observer.onEntered(self: Types.InternalObserver, callback: (Types.Entity, Types.Zone) -> ()): () -> ()
 	table.insert(State.observerEnteredCallbacks[self.id], callback)
@@ -285,7 +286,7 @@ end
 	@method onExited
 	@within Observer
 	@param callback (entity: Entity, zone: Zone) -> ()
-	@return () -> () -- A function that, when called, disconnects the callback.
+	@return () -> () -- Disconnect function
 ]=]
 function Observer.onExited(self: Types.InternalObserver, callback: (Types.Entity, Types.Zone) -> ()): () -> ()
 	table.insert(State.observerExitedCallbacks[self.id], callback)
@@ -314,7 +315,7 @@ end
 	@method observePlayer
 	@within Observer
 	@param callback (player: Player, zone: Zone) -> (() -> ())?
-	@return () -> () -- Function to stop observing entirely.
+	@return () -> () -- Disconnect function
 ]=]
 function Observer.observePlayer(self: Types.InternalObserver, callback: (Player, Types.Zone) -> (() -> ())?): () -> ()
 	local cleanups = {} :: { [Player]: () -> () }
@@ -382,7 +383,7 @@ end
 	@method onPlayerEntered
 	@within Observer
 	@param callback (player: Player, zone: Zone) -> ()
-	@return () -> ()
+	@return () -> () -- Disconnect function
 ]=]
 function Observer.onPlayerEntered(self: Types.InternalObserver, callback: (Player, Types.Zone) -> ()): () -> ()
 	return self:onEntered(function(entity, zone)
@@ -401,7 +402,7 @@ end
 	@method onPlayerExited
 	@within Observer
 	@param callback (player: Player, zone: Zone) -> ()
-	@return () -> () -- A function to disconnect the callback.
+	@return () -> () -- Disconnect function
 ]=]
 function Observer.onPlayerExited(self: Types.InternalObserver, callback: (Player, Types.Zone) -> ()): () -> ()
 	return self:onExited(function(entity, zone)
@@ -428,7 +429,7 @@ end
 	@method observeLocalPlayer
 	@within Observer
 	@param callback (zone: Zone) -> (() -> ())?
-	@return () -> () -- Function to stop observing entirely.
+	@return () -> () -- Disconnect function
 ]=]
 function Observer.observeLocalPlayer(self: Types.InternalObserver, callback: (Types.Zone) -> (() -> ())?): () -> ()
 	assert(IS_CLIENT, '[QuickZone] Observer:observeLocalPlayer can only be called on the Client.')
@@ -497,7 +498,7 @@ end
 	@method onLocalPlayerEntered
 	@within Observer
 	@param callback (zone: Zone) -> ()
-	@return () -> ()
+	@return () -> () -- Disconnect function
 ]=]
 function Observer.onLocalPlayerEntered(self: Types.InternalObserver, callback: (Types.Zone) -> ()): () -> ()
 	assert(IS_CLIENT, '[QuickZone] Observer:onLocalPlayerEntered can only be called on the Client.')
@@ -518,7 +519,7 @@ end
 	@method onLocalPlayerExited
 	@within Observer
 	@param callback (zone: Zone) -> ()
-	@return () -> ()
+	@return () -> () -- Disconnect function
 ]=]
 function Observer.onLocalPlayerExited(self: Types.InternalObserver, callback: (Types.Zone) -> ()): () -> ()
 	assert(IS_CLIENT, '[QuickZone] Observer:onLocalPlayerExited can only be called on the Client.')
@@ -547,7 +548,7 @@ end
 	@method observeGroup
 	@within Observer
 	@param callback (group: Group, zone: Zone) -> (() -> ())?
-	@return () -> ()
+	@return () -> () -- Disconnect function
 ]=]
 function Observer.observeGroup(
 	self: Types.InternalObserver,
@@ -705,6 +706,95 @@ function Observer.onGroupExited(self: Types.InternalObserver, callback: (Types.G
 			end
 		end
 	end)
+end
+
+--[=[ 
+	Fires when an entity seamlessly transitions from one attached zone to another 
+	overlapping attached zone. If `targetEntity` is provided, the event will silently 
+	filter out all other entities.
+
+	@tag Event
+	@method onTransitioned
+	@within Observer
+	@param callback (entity: Entity, newZone: Zone, oldZone: Zone) -> ()
+	@return () -> () -- Disconnect function
+]=]
+function Observer.onTransitioned(
+	self: Types.InternalObserver,
+	callback: (Types.Entity, Types.Zone, Types.Zone) -> ()
+): () -> ()
+	table.insert(State.observerTransitionedCallbacks[self.id], callback)
+
+	return function()
+		local idx = table.find(State.observerTransitionedCallbacks[self.id], callback)
+		if idx then
+			table.remove(State.observerTransitionedCallbacks[self.id], idx)
+		end
+	end
+end
+
+--[=[ 
+	Specialized event for Player entities transitioning between overlapping zones.
+	If `targetPlayer` is provided, the event will only fire for that specific player.
+	
+	@tag Event
+	@method onPlayerTransitioned
+	@within Observer
+	@param callback (player: Player, newZone: Zone, oldZone: Zone) -> ()
+	@return () -> () -- Disconnect function
+]=]
+function Observer.onPlayerTransitioned(
+	self: Types.InternalObserver,
+	callback: (Player, Types.Zone, Types.Zone) -> ()
+): () -> ()
+	local wrapper = function(entity, newZone, oldZone)
+		local player = State.entityToPlayer[entity]
+		if player then
+			callback(player, newZone, oldZone)
+		end
+	end
+
+	table.insert(State.observerTransitionedCallbacks[self.id], wrapper)
+
+	return function()
+		local idx = table.find(State.observerTransitionedCallbacks[self.id], wrapper)
+		if idx then
+			table.remove(State.observerTransitionedCallbacks[self.id], idx)
+		end
+	end
+end
+
+--[=[ 
+	Specialized event for the LocalPlayer transitioning between overlapping zones.
+	
+	@client
+	@tag Event
+	@method onLocalPlayerTransitioned
+	@within Observer
+	@param callback (newZone: Zone, oldZone: Zone) -> ()
+	@return () -> () -- Disconnect function
+]=]
+function Observer.onLocalPlayerTransitioned(
+	self: Types.InternalObserver,
+	callback: (Types.Zone, Types.Zone) -> ()
+): () -> ()
+	assert(IS_CLIENT, '[QuickZone] Observer:onLocalPlayerTransitioned can only be called on the Client.')
+
+	local wrapper = function(entity, newZone, oldZone)
+		local player = State.entityToPlayer[entity]
+		if player == Players.LocalPlayer then
+			callback(newZone, oldZone)
+		end
+	end
+
+	table.insert(State.observerTransitionedCallbacks[self.id], wrapper)
+
+	return function()
+		local idx = table.find(State.observerTransitionedCallbacks[self.id], wrapper)
+		if idx then
+			table.remove(State.observerTransitionedCallbacks[self.id], idx)
+		end
+	end
 end
 
 --[=[ 
@@ -1051,7 +1141,7 @@ end
 	@method onDestroy
 	@within Observer
 	@param callback () -> ()
-	@return () -> ()
+	@return () -> () -- Disconnect function
 ]=]
 function Observer.onDestroy(self: Types.InternalObserver, callback: () -> ()): () -> ()
 	if not self.onDestroyCallbacks then
@@ -1101,6 +1191,7 @@ function Observer.destroy(self: Types.InternalObserver): ()
 	State.observerPriorityMap[id] = nil
 	State.observerEnteredCallbacks[id] = nil
 	State.observerExitedCallbacks[id] = nil
+	State.observerTransitionedCallbacks[id] = nil
 	State.observerTrackingEntities[id] = nil
 	State.observerIdToObserverObj[id] = nil
 	State.observerEnabled[id] = nil

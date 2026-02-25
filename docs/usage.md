@@ -230,6 +230,11 @@ observer:onExited(function(entity, zone)
 	print(entity.Name .. ' exited ' .. zone:getId())
 end)
 
+-- Transition event (Fires when swapping between overlapping zones within the same observer)
+observer:onTransitioned(function(entity, newZone, oldZone)
+    print(entity.Name .. ' seamlessly moved to a new zone without leaving the area!')
+end)
+
 -- Group-level events
 observer:onGroupEntered(function(group, zone)
 	print('The first member of group ' .. group:getId() .. ' entered!')
@@ -241,12 +246,53 @@ end)
 -- Convenient player events
 observer:onPlayerEntered(function(player, zone) ... end)
 observer:onPlayerExited(function(player, zone) ... end)
+observer:onPlayerTransitioned(function(player, newZone, oldZone) ... end)
 observer:onLocalPlayerEntered(function(zone) ... end)
 observer:onLocalPlayerExited(function(zone) ... end)
+observer:onLocalPlayerTransitioned(function(newZone, oldZone) ... end)
 ```
 
-### Priority and Resolution
+### Handling Overlapping Zones (Transitions vs. Priorities)
+When zones physically overlap in the world, QuickZone offers two distinct architectural patterns to handle them, depending on your goal.
 Observers use a priority system to handle overlapping zones. An entity 'belongs' to only one zone state per observer at a time when using priorities.
+
+#### Pattern 1: The Data-Driven Pattern (Single Observer + Transitions)
+**Best for**: Systems that share the exact same logic, but use different values (e.g., all Environmental Hazards, all Healing Zones, all XP Zones).
+
+If a player walks from a Lava zone into an overlapping SuperLava zone attached to the same observer, they never actually "left" the observer's overall coverage area. Therefore, onExited and onEntered will not fire. Instead, the engine fires an onTransitioned event.
+
+This allows you to update metadata instantly!
+
+```lua
+hazardObserver:observePlayer(function(player, initialZone)
+    local currentDamage = initialZone:getMetadata().Damage or 10
+    local active = true
+
+    local disconnectTransition = hazardObserver:onPlayerTransitioned(function(transitioningPlayer, newZone, oldZone)
+        if transitioningPlayer ~= player then return end
+        
+        currentDamage = newZone:getMetadata().Damage or 10
+        print(player.Name .. " transitioned. New damage: " .. currentDamage)
+    end)
+
+    task.spawn(function()
+        while active do
+            player.Character.Humanoid:TakeDamage(currentDamage)
+            task.wait(1)
+        end
+    end)
+
+    return function()
+        active = false
+        disconnectTransition() -- Clean up the listener
+    end
+end)
+```
+
+#### Pattern 2: The State-Machine Pattern (Multiple Observers + Priorities)
+**Best for**: Systems with mutually exclusive logic that need to strictly override each other (e.g., Camera Filters, Music Tracks, UI States).
+
+If you have overlapping zones that do fundamentally different things, you should attach them to different observers and assign them a Priority. QuickZone's engine will automatically force the entity out of the lower-priority observer and into the higher-priority one.
 
 ```lua
 local lowPriority = Observer.new({ priority = 0 })

@@ -20,6 +20,7 @@ local debugVisuals = {} :: { [number]: BoxHandleAdornment }
 
 export type QuickZone = Types.QuickZone
 export type Zone = Types.Zone
+export type Zones = Types.Zones
 export type Observer = Types.Observer
 export type Group = Types.Group
 export type Entity = Types.Entity

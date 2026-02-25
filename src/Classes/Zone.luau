@@ -850,7 +850,7 @@ end
 	@method onDestroy
 	@within Zone
 	@param callback () -> ()
-	@return () -> ()
+	@return () -> () -- Disconnect function
 ]=]
 function Zone.onDestroy(self: Types.InternalZone, callback: () -> ()): () -> ()
 	if not self.onDestroyCallbacks then

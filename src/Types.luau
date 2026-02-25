@@ -173,6 +173,9 @@ export type Observer = {
 	onLocalPlayerExited: (self: Observer, callback: (Zone) -> ()) -> () -> (),
 	onGroupEntered: (self: Observer, callback: (Group, Zone) -> ()) -> () -> (),
 	onGroupExited: (self: Observer, callback: (Group, Zone) -> ()) -> () -> (),
+	onTransitioned: (self: Observer, callback: (Entity, Zone, Zone) -> ()) -> () -> (),
+	onPlayerTransitioned: (self: Observer, callback: (Player, Zone, Zone) -> ()) -> () -> (),
+	onLocalPlayerTransitioned: (self: Observer, callback: (Zone, Zone) -> ()) -> () -> (),
 	onDestroy: (self: Observer, callback: () -> ()) -> () -> (),
 	destroy: (self: Observer) -> (),
 }

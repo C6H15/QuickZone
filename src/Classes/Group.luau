@@ -594,7 +594,7 @@ end
 	@method onDestroy
 	@within Group
 	@param callback () -> ()
-	@return () -> ()
+	@return () -> () -- Disconnect function
 ]=]
 function Group.onDestroy(self: Types.InternalGroup, callback: () -> ()): () -> ()
 	if not self.onDestroyCallbacks then
