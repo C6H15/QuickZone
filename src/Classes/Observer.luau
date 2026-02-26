@@ -973,37 +973,33 @@ end
 function Observer.isPointInside(self: Types.InternalObserver, position: Vector3): boolean
 	local isInside = false
 
-	if State.dynamicTree then
-		LinearBVH.queryPoint(State.dynamicTree, position, function(zoneId)
-			if isInside then
-				return
-			end
-			local observers = State.zoneAttachedObservers[zoneId]
-			if observers and table.find(observers, self.id) then
-				if Geometry.isPointInZone(position, zoneId, true) then
-					isInside = true
-				end
-			end
-		end)
-
+	LinearBVH.queryPoint(State.dynamicTree, position, function(zoneId)
 		if isInside then
-			return true
+			return
 		end
+		local observers = State.zoneAttachedObservers[zoneId]
+		if observers and table.find(observers, self.id) then
+			if Geometry.isPointInZone(position, zoneId, true) then
+				isInside = true
+			end
+		end
+	end)
+
+	if isInside then
+		return true
 	end
 
-	if State.staticTree then
-		LinearBVH.queryPoint(State.staticTree, position, function(zoneId)
-			if isInside then
-				return
+	LinearBVH.queryPoint(State.staticTree, position, function(zoneId)
+		if isInside then
+			return
+		end
+		local observers = State.zoneAttachedObservers[zoneId]
+		if observers and table.find(observers, self.id) then
+			if Geometry.isPointInZone(position, zoneId, false) then
+				isInside = true
 			end
-			local observers = State.zoneAttachedObservers[zoneId]
-			if observers and table.find(observers, self.id) then
-				if Geometry.isPointInZone(position, zoneId, false) then
-					isInside = true
-				end
-			end
-		end)
-	end
+		end
+	end)
 
 	return isInside
 end

@@ -96,7 +96,7 @@ local function buildFlatTree(
 	end
 end
 
-function LinearBVH.build(cframes: { [number]: CFrame }, halfSizes: { [number]: Vector3 }): Types.Tree?
+function LinearBVH.build(cframes: { [number]: CFrame }, halfSizes: { [number]: Vector3 }): Types.Tree
 	-- Pool per unique list reference (static and dynamic) to allow reuse.
 	-- We don't need to clear the cache, since we track count separately.
 	local tree = treePools[cframes]
@@ -140,7 +140,7 @@ function LinearBVH.build(cframes: { [number]: CFrame }, halfSizes: { [number]: V
 	end
 
 	if count == 0 then
-		return nil
+		return { nodes = {}, count = 0 }
 	end
 
 	-- Add padding to avoid edge cases with flat scenes

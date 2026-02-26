@@ -129,8 +129,8 @@ function Scheduler.update(dt: number)
 		return
 	end
 
-	local staticRoot = State.staticTree
-	local dynamicRoot = State.dynamicTree
+	local staticTree = State.staticTree
+	local dynamicTree = State.dynamicTree
 
 	local numBuckets = #bucketList
 	if numBuckets == 0 then
@@ -223,13 +223,8 @@ function Scheduler.update(dt: number)
 				ctx_cCount = 0
 				ctx_highestWin = -math.huge
 
-				if dynamicRoot then
-					queryPoint(dynamicRoot, pos, queryCallbackDynamic)
-				end
-
-				if staticRoot then
-					queryPoint(staticRoot, pos, queryCallbackStatic)
-				end
+				queryPoint(dynamicTree, pos, queryCallbackDynamic)
+				queryPoint(staticTree, pos, queryCallbackStatic)
 
 				local current = data.activeObserverMemberships
 

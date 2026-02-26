@@ -186,17 +186,13 @@ function QuickZone:getZonesAtPoint(position: Vector3): { Zone }
 		end
 	end
 
-	if State.dynamicTree then
-		LinearBVH.queryPoint(State.dynamicTree, position, function(zoneId)
-			checkZone(zoneId, true)
-		end)
-	end
+	LinearBVH.queryPoint(State.dynamicTree, position, function(zoneId)
+		checkZone(zoneId, true)
+	end)
 
-	if State.staticTree then
-		LinearBVH.queryPoint(State.staticTree, position, function(zoneId)
-			checkZone(zoneId, false)
-		end)
-	end
+	LinearBVH.queryPoint(State.staticTree, position, function(zoneId)
+		checkZone(zoneId, false)
+	end)
 
 	return results
 end
@@ -236,17 +232,13 @@ function QuickZone:getObserversAtPoint(position: Vector3): { Observer }
 		end
 	end
 
-	if State.dynamicTree then
-		LinearBVH.queryPoint(State.dynamicTree, position, function(zoneId)
-			checkZone(zoneId, true)
-		end)
-	end
+	LinearBVH.queryPoint(State.dynamicTree, position, function(zoneId)
+		checkZone(zoneId, true)
+	end)
 
-	if State.staticTree then
-		LinearBVH.queryPoint(State.staticTree, position, function(zoneId)
-			checkZone(zoneId, false)
-		end)
-	end
+	LinearBVH.queryPoint(State.staticTree, position, function(zoneId)
+		checkZone(zoneId, false)
+	end)
 
 	return results
 end
@@ -489,6 +481,75 @@ function QuickZone:visualize(enabled: boolean): QuickZone
 	end)
 
 	return self
+end
+
+--[=[
+    Returns an iterator that yields every Zone intersecting the given point.
+    Ideal for zero-allocation ECS queries. Safe to `break` out of early.
+]=]
+function QuickZone:iterZonesAtPoint(point: Vector3)
+	-- Grab local references to avoid indexing `State` inside the tight loop
+	local dynamicTree = State.dynamicTree
+	local staticTree = State.staticTree
+
+	local dynNodes = dynamicTree.nodes
+	local dynCount = dynamicTree.count or 0
+
+	local statNodes = staticTree.nodes
+	local statCount = staticTree.count or 0
+
+	local px, py, pz = point.X, point.Y, point.Z
+
+	local index = 1
+	local checkingDynamic = true
+
+	-- This closure acts as our state machine
+	return function(): Types.Zone?
+		if checkingDynamic then
+			while index <= dynCount do
+				local node = dynNodes[index]
+				local min, max = node.min, node.max
+
+				if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
+					if node.id > 0 then
+						local hitId = node.id
+						index += 1
+						-- Yield the actual Zone object!
+						return zoneIdToZoneObj[hitId]
+					else
+						index += 1
+					end
+				else
+					index = node.skipIndex
+				end
+			end
+
+			-- Dynamic tree finished! Swap to static tree for the next iteration.
+			checkingDynamic = false
+			index = 1
+		end
+
+		if not checkingDynamic then
+			while index <= statCount do
+				local node = statNodes[index]
+				local min, max = node.min, node.max
+
+				if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
+					if node.id > 0 then
+						local hitId = node.id
+						index += 1
+						return zoneIdToZoneObj[hitId]
+					else
+						index += 1
+					end
+				else
+					index = node.skipIndex
+				end
+			end
+		end
+
+		return nil -- Both trees exhausted
+	end
 end
 
 return QuickZone
