@@ -186,14 +186,14 @@ function QuickZone:getZonesAtPoint(position: Vector3): { Zone }
 		end
 	end
 
-	if State.dynamicRootNode then
-		LinearBVH.queryPoint(State.dynamicRootNode, position, function(zoneId)
+	if State.dynamicTree then
+		LinearBVH.queryPoint(State.dynamicTree, position, function(zoneId)
 			checkZone(zoneId, true)
 		end)
 	end
 
-	if State.staticRootNode then
-		LinearBVH.queryPoint(State.staticRootNode, position, function(zoneId)
+	if State.staticTree then
+		LinearBVH.queryPoint(State.staticTree, position, function(zoneId)
 			checkZone(zoneId, false)
 		end)
 	end
@@ -236,14 +236,14 @@ function QuickZone:getObserversAtPoint(position: Vector3): { Observer }
 		end
 	end
 
-	if State.dynamicRootNode then
-		LinearBVH.queryPoint(State.dynamicRootNode, position, function(zoneId)
+	if State.dynamicTree then
+		LinearBVH.queryPoint(State.dynamicTree, position, function(zoneId)
 			checkZone(zoneId, true)
 		end)
 	end
 
-	if State.staticRootNode then
-		LinearBVH.queryPoint(State.staticRootNode, position, function(zoneId)
+	if State.staticTree then
+		LinearBVH.queryPoint(State.staticTree, position, function(zoneId)
 			checkZone(zoneId, false)
 		end)
 	end

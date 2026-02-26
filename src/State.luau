@@ -16,8 +16,8 @@ State.dynamicCFrames = {} :: { [number]: CFrame }
 State.dynamicHalfSizes = {} :: { [number]: Vector3 }
 State.dynamicTypes = {} :: { [number]: number }
 
-State.staticRootNode = nil :: Types.Node?
-State.dynamicRootNode = nil :: Types.Node?
+State.staticTree = nil :: Types.Tree?
+State.dynamicTree = nil :: Types.Tree?
 State.pendingStaticRebuild = false
 State.pendingDynamicRebuild = false
 State.spatialVersion = 1

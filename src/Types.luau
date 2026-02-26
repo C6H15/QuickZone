@@ -19,11 +19,15 @@ export type BoundingVolume = {
 }
 
 export type Node = {
-	left: Node?,
-	right: Node?,
 	min: Vector3,
 	max: Vector3,
-	id: number, -- -1 for internal nodes
+	id: number,
+	skipIndex: number,
+}
+
+export type Tree = {
+	nodes: { Node },
+	count: number,
 }
 
 export type QuickZone = {

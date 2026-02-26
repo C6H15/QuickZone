@@ -113,13 +113,13 @@ function Scheduler.update(dt: number)
 	local start = os.clock()
 
 	if State.pendingDynamicRebuild then
-		State.dynamicRootNode = LinearBVH.build(State.dynamicCFrames, State.dynamicHalfSizes)
+		State.dynamicTree = LinearBVH.build(State.dynamicCFrames, State.dynamicHalfSizes)
 		State.pendingDynamicRebuild = false
 		State.spatialVersion += 1
 	end
 
 	if State.pendingStaticRebuild then
-		State.staticRootNode = LinearBVH.build(State.staticCFrames, State.staticHalfSizes)
+		State.staticTree = LinearBVH.build(State.staticCFrames, State.staticHalfSizes)
 		State.pendingStaticRebuild = false
 		State.spatialVersion += 1
 	end
@@ -129,13 +129,8 @@ function Scheduler.update(dt: number)
 		return
 	end
 
-	local staticRoot = State.staticRootNode
-	local dynamicRoot = State.dynamicRootNode
-
-	if not staticRoot and not dynamicRoot then
-		debug.profileend()
-		return
-	end
+	local staticRoot = State.staticTree
+	local dynamicRoot = State.dynamicTree
 
 	local numBuckets = #bucketList
 	if numBuckets == 0 then
