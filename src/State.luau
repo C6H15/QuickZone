@@ -42,6 +42,7 @@ State.observerSafety = {} :: { [number]: boolean }
 State.observerUpdateRate = {} :: { [number]: number }
 State.observerPrecisionSq = {} :: { [number]: number }
 
+State.autoSyncZones = {} :: { [number]: Types.InternalZone }
 State.zoneAttachedObservers = {} :: { [number]: { number } }
 State.zoneIdToZoneObj = {} :: { [number]: Types.InternalZone }
 State.observerIdToObserverObj = {} :: { [number]: Types.InternalObserver }

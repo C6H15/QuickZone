@@ -19,13 +19,15 @@ Zones.__index = Zones
 	@param config { isDynamic: boolean?, metadata: any? }?
 	@return Zones
 ]=]
-function Zones.new(config: { isDynamic: boolean?, metadata: any? }?): Types.Zones
+function Zones.new(config: { isDynamic: boolean?, autoSyncToParts: boolean?, metadata: any? }?): Types.Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config then config.metadata else nil
+	local autoSyncToParts = if config and config.autoSyncToParts ~= nil then config.autoSyncToParts else false
 
 	local self: Types.InternalZones = setmetatable({
-		isDynamic = isDynamic,
+		dynamic = isDynamic,
 		metadata = metadata,
+		autoSyncToParts = autoSyncToParts,
 		zones = {} :: { [Types.Zone]: boolean },
 		observers = {} :: { [Types.Observer]: boolean },
 		onDestroyObserverCleanups = {} :: { [Types.Observer]: () -> () },
@@ -95,7 +97,7 @@ end
 	@return Zones
 ]=]
 function Zones.syncToParts(self: Types.InternalZones): Types.Zones
-	if not self.isDynamic then
+	if not self.dynamic then
 		return self
 	end
 	for zone, _ in self.zones do
@@ -142,7 +144,7 @@ end
 	@return boolean
 ]=]
 function Zones.isDynamic(self: Types.InternalZones): boolean
-	return self.isDynamic
+	return self.dynamic
 end
 
 --[=[ 
@@ -160,6 +162,55 @@ function Zones.isPointInside(self: Types.InternalZones, point: Vector3): boolean
 		end
 	end
 	return false
+end
+
+--[=[ 
+	Enables or disables automatic polling and syncing to the tracked BaseParts for all underlying zones.
+	If any zones are currently static, they will automatically be set to dynamic.
+
+	@method setAutoSyncToParts
+	@within Zones
+	@param autoSyncToParts boolean
+	@return Zones
+]=]
+function Zones.setAutoSyncToParts(self: Types.InternalZones, autoSyncToParts: boolean): Types.Zones
+	if self.autoSyncToParts == autoSyncToParts then
+		return self
+	end
+
+	self.autoSyncToParts = autoSyncToParts
+
+	for zone, _ in self.zones do
+		zone:setAutoSyncToPart(autoSyncToParts)
+	end
+
+	return self
+end
+
+--[=[ 
+	Promotes or demotes all underlying zones between the Static and Dynamic trees.
+	
+	:::info Performance
+	Changing a zone's dynamic state forces both the static and dynamic trees to rebuild. 
+	:::
+
+	@method setDynamic
+	@within Zones
+	@param isDynamic boolean
+	@return Zones
+]=]
+function Zones.setDynamic(self: Types.InternalZones, isDynamic: boolean): Types.Zones
+	if self.dynamic == isDynamic then
+		return self
+	end
+
+	self.dynamic = isDynamic
+
+	for zone, _ in self.zones do
+		zone:setDynamic(isDynamic)
+	end
+
+	return self
 end
 
 --[=[
@@ -266,6 +317,19 @@ function Zones.add(self: Types.InternalZones, zone: Types.Zone)
 	if self.zones[zone] then
 		return
 	end
+
+	if self.metadata ~= nil and zone:getMetadata() == nil then
+		zone:setMetadata(self.metadata)
+	end
+
+	if self.dynamic and not zone:isDynamic() then
+		zone:setDynamic(true)
+	end
+
+	if self.autoSyncToParts then
+		zone:setAutoSyncToPart(true)
+	end
+
 	self.zones[zone] = true
 
 	self.onDestroyZoneCleanups[zone] = zone:onDestroy(function()

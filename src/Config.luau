@@ -19,6 +19,10 @@ Config.Scheduler = {
 	-- Maximum execution time (in seconds) per frame
 	-- 0.001 = 1ms (approx 6% of a frame at 60 FPS)
 	frameBudget = 1 / 1000,
+
+	-- How often (in Hz) to automatically sync zone positions to their attached parts.
+	-- Only applies to zones with autoSync enabled.
+	autoSyncToPartRate = 0,
 }
 
 Config.Observer = {

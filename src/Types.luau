@@ -85,6 +85,9 @@ export type Zone = {
 	attach: (self: Zone, observer: Observer) -> Zone,
 	detach: (self: Zone, observer: Observer) -> Zone,
 	syncToPart: (self: Zone) -> Zone,
+	setPart: (self: Zone, part: BasePart?) -> Zone,
+	setAutoSyncToPart: (self: Zone, autoSyncToPart: boolean) -> Zone,
+	setDynamic: (self: Zone, dynamic: boolean) -> Zone,
 	setCFrame: (self: Zone, cf: CFrame) -> Zone,
 	setPosition: (self: Zone, pos: Vector3) -> Zone,
 	setSize: (self: Zone, size: Vector3) -> Zone,
@@ -109,6 +112,8 @@ export type InternalZone = Zone & {
 	part: BasePart?,
 	dynamic: boolean,
 	metadata: any?,
+	autoSyncToPart: boolean,
+	syncConnections: { RBXScriptConnection }?,
 	onDestroyCallbacks: { () -> () }?,
 }
 
@@ -116,6 +121,8 @@ export type Zones = {
 	attach: (self: Zones, observer: Observer) -> Zones,
 	detach: (self: Zones, observer: Observer) -> Zones,
 	syncToParts: (self: Zones) -> Zones,
+	setAutoSyncToParts: (self: Zones, autoSyncToParts: boolean) -> Zones,
+	setDynamic: (self: Zones, dynamic: boolean) -> Zones,
 	getZones: (self: Zones) -> { Zone },
 	getObservers: (self: Zones) -> { Observer },
 	getMetadata: (self: Zones) -> any?,
@@ -128,7 +135,8 @@ export type Zones = {
 }
 
 export type InternalZones = Zones & {
-	isDynamic: boolean,
+	autoSyncToParts: boolean?,
+	dynamic: boolean,
 	metadata: any?,
 	zones: { [Zone]: boolean },
 	observers: { [Observer]: boolean },

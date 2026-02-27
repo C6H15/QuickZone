@@ -24,6 +24,8 @@ local zoneIdToZoneObj = State.zoneIdToZoneObj
 local bucketList = State.bucketList
 local entityData = State.entityData
 local entityToObservers = State.entityToObservers
+local autoSyncZones = State.autoSyncZones
+local dynamicCFrames = State.dynamicCFrames
 
 local ctx_pos: Vector3
 local ctx_cCount: number = 0
@@ -39,6 +41,8 @@ local nextBucketIndex = 1 -- Round-robin pointer
 local bucketLastProcessedIndex = {} :: { [number]: number }
 
 local autoUpdateConnection: RBXScriptConnection?
+local autoSyncToPartRate = Config.Scheduler.autoSyncToPartRate
+local autoSyncToPartTimer = 0
 
 local STRAT_POS = Config.Strategy.POS
 local STRAT_PRIM = Config.Strategy.PRIM
@@ -46,6 +50,47 @@ local STRAT_WORLD = Config.Strategy.WORLD
 local STRAT_CFRAME = Config.Strategy.CFRAME
 
 local BUDGET_CHECK = 32
+local AUTO_SYNC_TO_PART_PRECISION = 0.1 ^ 2
+
+local function processAutoSyncToPart(dt: number)
+	local shouldSync = false
+
+	if autoSyncToPartRate > 0 then
+		local syncInterval = 1 / autoSyncToPartRate
+		autoSyncToPartTimer += dt
+		if autoSyncToPartTimer >= syncInterval then
+			autoSyncToPartTimer = 0
+			shouldSync = true
+		end
+	else
+		shouldSync = true
+	end
+
+	if not shouldSync then
+		return
+	end
+
+	for id, zone in autoSyncZones do
+		local part = zone.part
+		if not part then
+			continue
+		end
+
+		local newCF = part.CFrame
+		local oldCF = dynamicCFrames[id]
+
+		if oldCF == newCF then
+			continue
+		end
+
+		local p1, p2 = oldCF.Position, newCF.Position
+		local dx, dy, dz = p2.X - p1.X, p2.Y - p1.Y, p2.Z - p1.Z
+		if (dx * dx + dy * dy + dz * dz) > AUTO_SYNC_TO_PART_PRECISION or oldCF.Rotation ~= newCF.Rotation then
+			dynamicCFrames[id] = newCF
+			State.pendingDynamicRebuild = true
+		end
+	end
+end
 
 local function processZoneHit(zoneId: number)
 	local observers = zoneAttachedObservers[zoneId]
@@ -109,23 +154,12 @@ end
 local Scheduler = {}
 
 function Scheduler.update(dt: number)
-	debug.profilebegin('QuickZone_Scheduler')
 	local start = os.clock()
 
-	if State.pendingDynamicRebuild then
-		State.dynamicTree = LinearBVH.build(State.dynamicCFrames, State.dynamicHalfSizes)
-		State.pendingDynamicRebuild = false
-		State.spatialVersion += 1
-	end
-
-	if State.pendingStaticRebuild then
-		State.staticTree = LinearBVH.build(State.staticCFrames, State.staticHalfSizes)
-		State.pendingStaticRebuild = false
-		State.spatialVersion += 1
-	end
+	processAutoSyncToPart(dt)
+	Scheduler.rebuildTrees()
 
 	if (os.clock() - start) > frameBudget then
-		debug.profileend()
 		return
 	end
 
@@ -134,7 +168,6 @@ function Scheduler.update(dt: number)
 
 	local numBuckets = #bucketList
 	if numBuckets == 0 then
-		debug.profileend()
 		return
 	end
 
@@ -326,8 +359,6 @@ function Scheduler.update(dt: number)
 			break
 		end
 	end
-
-	debug.profileend()
 end
 
 function Scheduler.setAutoUpdate(enabled: boolean)
@@ -347,6 +378,28 @@ function Scheduler.setFrameBudget(n: number)
 	assert(n > 0, '[QuickZone] frameBudget must be greater than 0')
 
 	frameBudget = n
+end
+
+function Scheduler.rebuildTrees()
+	if State.pendingDynamicRebuild then
+		State.dynamicTree = LinearBVH.build(State.dynamicCFrames, State.dynamicHalfSizes)
+		State.pendingDynamicRebuild = false
+		State.spatialVersion += 1
+	end
+
+	if State.pendingStaticRebuild then
+		State.staticTree = LinearBVH.build(State.staticCFrames, State.staticHalfSizes)
+		State.pendingStaticRebuild = false
+		State.spatialVersion += 1
+	end
+end
+
+function Scheduler.setAutoSyncToPartRate(hz: number)
+	if hz <= 0 then
+		autoSyncToPartRate = 0
+	else
+		autoSyncToPartRate = hz
+	end
 end
 
 Scheduler.setAutoUpdate(Config.Scheduler.autoUpdate)

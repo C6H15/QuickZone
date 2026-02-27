@@ -38,6 +38,48 @@ local function getShapeEnumValue(part: BasePart): number
 	return Enum.PartType.Block.Value
 end
 
+local function clearAutoSyncToPart(zone: Types.InternalZone)
+	State.autoSyncZones[zone.id] = nil
+	if zone.syncConnections then
+		for _, conn in zone.syncConnections do
+			conn:Disconnect()
+		end
+		zone.syncConnections = nil
+	end
+end
+
+local function setupAutoSyncToPart(zone: Types.InternalZone, part: BasePart)
+	State.autoSyncZones[zone.id] = zone
+
+	local connections = zone.syncConnections or {}
+
+	table.insert(
+		connections,
+		part:GetPropertyChangedSignal('Size'):Connect(function()
+			local newHalfSize = part.Size * 0.5
+			if dynamicHalfSizes[zone.id] ~= newHalfSize then
+				dynamicHalfSizes[zone.id] = newHalfSize
+				State.pendingDynamicRebuild = true
+			end
+		end)
+	)
+
+	if part:IsA('Part') then
+		table.insert(
+			connections,
+			part:GetPropertyChangedSignal('Shape'):Connect(function()
+				local newShape = part.Shape.Value
+				if dynamicTypes[zone.id] ~= newShape then
+					dynamicTypes[zone.id] = newShape
+					State.pendingDynamicRebuild = true
+				end
+			end)
+		)
+	end
+
+	zone.syncConnections = connections
+end
+
 --[=[ 
 	Zones define physical areas in world space. They can be static or dynamic 
 	and support shapes like Blocks, Balls, and Cylinders.
@@ -65,6 +107,7 @@ local function newZoneInternal(
 	part: BasePart?,
 	isDynamic: boolean,
 	metadata: any?,
+	autoSyncToPart: boolean,
 	observers: { Types.Observer }?
 ): Types.Zone
 	local id = State.nextZoneId
@@ -88,8 +131,13 @@ local function newZoneInternal(
 		part = part,
 		dynamic = isDynamic,
 		metadata = metadata,
+		autoSyncToPart = false,
 	}, Zone) :: any
 	State.zoneIdToZoneObj[id] = self
+
+	if autoSyncToPart then
+		self:setAutoSyncToPart(true)
+	end
 
 	if observers then
 		local attached = {}
@@ -135,6 +183,7 @@ function Zone.new(config: {
 	part: BasePart?,
 	isDynamic: boolean?,
 	metadata: any?,
+	autoSyncToPart: boolean?,
 	observers: { Types.Observer }?,
 }): Types.Zone
 	local shapeType = Enum.PartType.Block.Value
@@ -155,6 +204,7 @@ function Zone.new(config: {
 		config.part,
 		config.isDynamic or false,
 		config.metadata,
+		config.autoSyncToPart or false,
 		config.observers
 	)
 end
@@ -185,7 +235,12 @@ end
 ]=]
 function Zone.fromPart(
 	part: BasePart,
-	config: { isDynamic: boolean?, metadata: any?, observers: { Types.Observer }? }?
+	config: {
+		isDynamic: boolean?,
+		metadata: any?,
+		autoSyncToPart: boolean?,
+		observers: { Types.Observer }?,
+	}?
 ): Types.Zone
 	local shapeId = Enum.PartType.Block.Value
 	if part:IsA('Part') then
@@ -198,8 +253,10 @@ function Zone.fromPart(
 
 	local isDynamic = config and config.isDynamic or false
 	local metadata = config and config.metadata
+	local autoSyncToPart = config and config.autoSyncToPart or false
 	local observers = config and config.observers
-	return newZoneInternal(part.CFrame, part.Size, shapeId, part, isDynamic, metadata, observers)
+
+	return newZoneInternal(part.CFrame, part.Size, shapeId, part, isDynamic, metadata, autoSyncToPart, observers)
 end
 
 --[=[
@@ -216,15 +273,18 @@ function Zone.fromParts(
 	config: {
 		isDynamic: boolean?,
 		metadata: any?,
+		autoSyncToPart: boolean?,
 		observers: { Types.Observer }?,
 	}?
 ): Types.Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
+	local autoSyncToPart = if config and config.autoSyncToPart ~= nil then config.autoSyncToPart else false
 
 	local zones = Zones.new({
 		isDynamic = isDynamic,
 		metadata = metadata,
+		autoSyncToPart = autoSyncToPart,
 	}) :: Types.InternalZones
 
 	if config and config.observers then
@@ -238,6 +298,7 @@ function Zone.fromParts(
 			local newZone = Zone.fromPart(part, {
 				isDynamic = isDynamic,
 				metadata = zones.metadata,
+				autoSyncToPart = autoSyncToPart,
 			})
 			zones:add(newZone)
 		end
@@ -261,15 +322,18 @@ function Zone.fromChildren(
 	config: {
 		isDynamic: boolean?,
 		metadata: any?,
+		autoSyncToPart: boolean?,
 		observers: { Types.Observer }?,
 	}?
 ): Types.Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
+	local autoSyncToPart = if config and config.autoSyncToPart ~= nil then config.autoSyncToPart else false
 
 	local zones = Zones.new({
 		isDynamic = isDynamic,
 		metadata = metadata,
+		autoSyncToPart = autoSyncToPart,
 	}) :: Types.InternalZones
 
 	if config and config.observers then
@@ -338,15 +402,18 @@ function Zone.fromDescendants(
 	config: {
 		isDynamic: boolean?,
 		metadata: any?,
+		autoSyncToPart: boolean?,
 		observers: { Types.Observer }?,
 	}?
 ): Types.Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
+	local autoSyncToPart = if config and config.autoSyncToPart ~= nil then config.autoSyncToPart else false
 
 	local zones = Zones.new({
 		isDynamic = isDynamic,
 		metadata = metadata,
+		autoSyncToPart = autoSyncToPart,
 	}) :: Types.InternalZones
 
 	if config and config.observers then
@@ -408,16 +475,19 @@ function Zone.fromTag(
 	config: {
 		isDynamic: boolean?,
 		metadata: any?,
+		autoSyncToPart: boolean?,
 		observers: { Types.Observer }?,
 	}?
 ): Types.Zones
 	-- Create Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
+	local autoSyncToPart = if config and config.autoSyncToPart ~= nil then config.autoSyncToPart else false
 
 	local zones = Zones.new({
 		isDynamic = isDynamic,
 		metadata = metadata,
+		autoSyncToPart = autoSyncToPart,
 	}) :: Types.InternalZones
 
 	if config and config.observers then
@@ -547,6 +617,61 @@ function Zone.detach(self: Types.InternalZone, observer: Types.InternalObserver)
 end
 
 --[=[ 
+	Enables or disables automatic polling and syncing to the tracked BasePart.
+	If the zone is currently static, it will automatically be set to dynamic.
+
+	@method setAutoSyncToPart
+	@within Zone
+	@param autoSyncToPart boolean
+	@return Zone
+]=]
+function Zone.setAutoSyncToPart(self: Types.InternalZone, autoSyncToPart: boolean): Types.Zone
+	if self.autoSyncToPart == autoSyncToPart then
+		return self
+	end
+
+	self.autoSyncToPart = autoSyncToPart
+
+	if autoSyncToPart then
+		if not self.dynamic then
+			self:setDynamic(true)
+		end
+
+		if self.part then
+			setupAutoSyncToPart(self, self.part)
+		else
+			warn('[QuickZone] Cannot autoSyncToPart a Zone without a tracked BasePart.')
+		end
+	else
+		clearAutoSyncToPart(self)
+	end
+
+	return self
+end
+
+--[=[ 
+	Updates the tracked BasePart for this zone. If `autoSyncToPart` is enabled, 
+	the zone will immediately start syncing to the new part.
+
+	@method setPart
+	@within Zone
+	@param part BasePart?
+	@return Zone
+]=]
+function Zone.setPart(self: Types.InternalZone, part: BasePart?): Types.Zone
+	self.part = part
+
+	if self.autoSyncToPart then
+		clearAutoSyncToPart(self)
+		if part then
+			setupAutoSyncToPart(self, part)
+		end
+	end
+
+	return self
+end
+
+--[=[ 
 	Update the zone to the part's current CFrame, Size and Shape.
 
 	:::info Rebuild
@@ -590,6 +715,55 @@ function Zone.syncToPart(self: Types.InternalZone): Types.Zone
 		staticTypes[id] = shapeType
 		State.pendingStaticRebuild = true
 	end
+
+	return self
+end
+
+--[=[ 
+	Promotes or demotes a zone between the Static and Dynamic trees.
+	
+	:::info Performance
+	Changing a zone's dynamic state forces both the static and dynamic trees to rebuild. 
+	Use this sparingly (e.g., when a static bridge breaks and becomes dynamic).
+	:::
+
+	@method setDynamic
+	@within Zone
+	@param isDynamic boolean
+	@return Zone
+]=]
+function Zone.setDynamic(self: Types.InternalZone, isDynamic: boolean): Types.Zone
+	if self.dynamic == isDynamic then
+		return self
+	end
+
+	local id = self.id
+	self.dynamic = isDynamic
+
+	if isDynamic then
+		dynamicCFrames[id] = staticCFrames[id]
+		dynamicHalfSizes[id] = staticHalfSizes[id]
+		dynamicTypes[id] = staticTypes[id]
+
+		staticCFrames[id] = nil
+		staticHalfSizes[id] = nil
+		staticTypes[id] = nil
+	else
+		if self.autoSyncToPart then
+			self:setAutoSyncToPart(false)
+		end
+
+		staticCFrames[id] = dynamicCFrames[id]
+		staticHalfSizes[id] = dynamicHalfSizes[id]
+		staticTypes[id] = dynamicTypes[id]
+
+		dynamicCFrames[id] = nil
+		dynamicHalfSizes[id] = nil
+		dynamicTypes[id] = nil
+	end
+
+	State.pendingStaticRebuild = true
+	State.pendingDynamicRebuild = true
 
 	return self
 end
@@ -885,6 +1059,8 @@ function Zone.destroy(self: Types.InternalZone): ()
 		end
 		table.clear(self.onDestroyCallbacks)
 	end
+
+	clearAutoSyncToPart(self)
 
 	-- Force flush so the zone object will not be nil when spatial query is done in the Scheduler
 	local id = self.id
