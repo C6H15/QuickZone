@@ -10,7 +10,7 @@ local Config = require(script.Parent.Parent.Config)
 local Types = require(script.Parent.Parent.Types)
 
 local queryPoint = LinearBVH.queryPoint
-local isPointInZone = Geometry.isPointInZone
+local isPointInShape = Geometry.isPointInShape
 
 local zoneAttachedObservers = State.zoneAttachedObservers
 local observerPriorityMap = State.observerPriorityMap
@@ -25,7 +25,13 @@ local bucketList = State.bucketList
 local entityData = State.entityData
 local entityToObservers = State.entityToObservers
 local autoSyncZones = State.autoSyncZones
+
+local staticCFrames = State.staticCFrames
+local staticHalfSizes = State.staticHalfSizes
+local staticTypes = State.staticTypes
 local dynamicCFrames = State.dynamicCFrames
+local dynamicHalfSizes = State.dynamicHalfSizes
+local dynamicTypes = State.dynamicTypes
 
 local ctx_pos: Vector3
 local ctx_cCount: number = 0
@@ -124,13 +130,13 @@ local function processZoneHit(zoneId: number)
 end
 
 local function queryCallbackStatic(zoneId: number)
-	if isPointInZone(ctx_pos, zoneId, false) then
+	if isPointInShape(ctx_pos, staticCFrames[zoneId], staticHalfSizes[zoneId], staticTypes[zoneId]) then
 		processZoneHit(zoneId)
 	end
 end
 
 local function queryCallbackDynamic(zoneId: number)
-	if isPointInZone(ctx_pos, zoneId, true) then
+	if isPointInShape(ctx_pos, dynamicCFrames[zoneId], dynamicHalfSizes[zoneId], dynamicTypes[zoneId]) then
 		processZoneHit(zoneId)
 	end
 end

@@ -9,8 +9,18 @@ local State = require(script.State)
 local Config = require(script.Config)
 local Scheduler = require(script.Core.Scheduler)
 
+local isPointInShape = Geometry.isPointInShape
+
+local zoneIdToZoneObj = State.zoneIdToZoneObj
 local zoneAttachedObservers = State.zoneAttachedObservers
 local observerIdToObserverObj = State.observerIdToObserverObj
+
+local staticCFrames = State.staticCFrames
+local staticHalfSizes = State.staticHalfSizes
+local staticTypes = State.staticTypes
+local dynamicCFrames = State.dynamicCFrames
+local dynamicHalfSizes = State.dynamicHalfSizes
+local dynamicTypes = State.dynamicTypes
 
 local foundIdsCache = {}
 
@@ -206,21 +216,22 @@ end
 function QuickZone:getZonesAtPoint(position: Vector3): { Zone }
 	local results = {}
 
-	local function checkZone(zoneId: number, isDynamic: boolean)
-		if Geometry.isPointInZone(position, zoneId, isDynamic) then
-			local zone = State.zoneIdToZoneObj[zoneId]
+	LinearBVH.queryPoint(State.dynamicTree, position, function(zoneId)
+		if isPointInShape(position, dynamicCFrames[zoneId], dynamicHalfSizes[zoneId], dynamicTypes[zoneId]) then
+			local zone = zoneIdToZoneObj[zoneId]
 			if zone then
 				table.insert(results, zone)
 			end
 		end
-	end
-
-	LinearBVH.queryPoint(State.dynamicTree, position, function(zoneId)
-		checkZone(zoneId, true)
 	end)
 
 	LinearBVH.queryPoint(State.staticTree, position, function(zoneId)
-		checkZone(zoneId, false)
+		if isPointInShape(position, staticCFrames[zoneId], staticHalfSizes[zoneId], staticTypes[zoneId]) then
+			local zone = zoneIdToZoneObj[zoneId]
+			if zone then
+				table.insert(results, zone)
+			end
+		end
 	end)
 
 	return results
@@ -238,11 +249,7 @@ function QuickZone:getObserversAtPoint(position: Vector3): { Observer }
 	table.clear(foundIdsCache)
 	local results = {}
 
-	local function checkZone(zoneId: number, isDynamic: boolean)
-		if not Geometry.isPointInZone(position, zoneId, isDynamic) then
-			return
-		end
-
+	local function processValidZone(zoneId: number)
 		local observers = zoneAttachedObservers[zoneId]
 		if not observers then
 			return
@@ -262,11 +269,15 @@ function QuickZone:getObserversAtPoint(position: Vector3): { Observer }
 	end
 
 	LinearBVH.queryPoint(State.dynamicTree, position, function(zoneId)
-		checkZone(zoneId, true)
+		if isPointInShape(position, dynamicCFrames[zoneId], dynamicHalfSizes[zoneId], dynamicTypes[zoneId]) then
+			processValidZone(zoneId)
+		end
 	end)
 
 	LinearBVH.queryPoint(State.staticTree, position, function(zoneId)
-		checkZone(zoneId, false)
+		if isPointInShape(position, staticCFrames[zoneId], staticHalfSizes[zoneId], staticTypes[zoneId]) then
+			processValidZone(zoneId)
+		end
 	end)
 
 	return results

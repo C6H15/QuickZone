@@ -10,6 +10,17 @@ local updateProfile = require(script.Parent.Parent.Core.updateProfile)
 local State = require(script.Parent.Parent.State)
 local Types = require(script.Parent.Parent.Types)
 
+local isPointInShape = Geometry.isPointInShape
+
+local zoneAttachedObservers = State.zoneAttachedObservers
+
+local staticCFrames = State.staticCFrames
+local staticHalfSizes = State.staticHalfSizes
+local staticTypes = State.staticTypes
+local dynamicCFrames = State.dynamicCFrames
+local dynamicHalfSizes = State.dynamicHalfSizes
+local dynamicTypes = State.dynamicTypes
+
 local IS_CLIENT = RunService:IsClient()
 
 local function updateAllEntitiesForObserver(observerId: number)
@@ -977,9 +988,10 @@ function Observer.isPointInside(self: Types.InternalObserver, position: Vector3)
 		if isInside then
 			return
 		end
-		local observers = State.zoneAttachedObservers[zoneId]
+
+		local observers = zoneAttachedObservers[zoneId]
 		if observers and table.find(observers, self.id) then
-			if Geometry.isPointInZone(position, zoneId, true) then
+			if isPointInShape(position, dynamicCFrames[zoneId], dynamicHalfSizes[zoneId], dynamicTypes[zoneId]) then
 				isInside = true
 			end
 		end
@@ -993,9 +1005,10 @@ function Observer.isPointInside(self: Types.InternalObserver, position: Vector3)
 		if isInside then
 			return
 		end
-		local observers = State.zoneAttachedObservers[zoneId]
+
+		local observers = zoneAttachedObservers[zoneId]
 		if observers and table.find(observers, self.id) then
-			if Geometry.isPointInZone(position, zoneId, false) then
+			if isPointInShape(position, staticCFrames[zoneId], staticHalfSizes[zoneId], staticTypes[zoneId]) then
 				isInside = true
 			end
 		end

@@ -9,10 +9,11 @@ local Zones = require(script.Parent.Zones)
 local staticCFrames = State.staticCFrames
 local staticHalfSizes = State.staticHalfSizes
 local staticTypes = State.staticTypes
-
 local dynamicCFrames = State.dynamicCFrames
 local dynamicHalfSizes = State.dynamicHalfSizes
 local dynamicTypes = State.dynamicTypes
+
+local isPointInShape = Geometry.isPointInShape
 
 local SHAPE_MAP = {
 	Block = Enum.PartType.Block.Value,
@@ -997,7 +998,12 @@ end
 	@return boolean
 ]=]
 function Zone.isPointInside(self: Types.InternalZone, point: Vector3): boolean
-	return Geometry.isPointInZone(point, self.id, self.dynamic)
+	local id = self.id
+	if self.dynamic then
+		return isPointInShape(point, dynamicCFrames[id], dynamicHalfSizes[id], dynamicTypes[id])
+	else
+		return isPointInShape(point, staticCFrames[id], staticHalfSizes[id], staticTypes[id])
+	end
 end
 
 --[=[ 
