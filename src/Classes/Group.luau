@@ -600,11 +600,6 @@ end
 function Group.getObservers(self: Types.InternalGroup): { Types.Observer }
 	local result = {}
 	local observersMap = State.groupToObservers[self.id]
-
-	if not observersMap then
-		return result
-	end
-
 	for observerId, _ in observersMap do
 		local observer = State.observerIdToObserverObj[observerId]
 		if observer then
@@ -664,6 +659,26 @@ function Group.iterPlayers(self: Types.InternalGroup): () -> Player?
 
 			return player
 		end
+	end
+end
+
+--[=[
+	Returns a zero-allocation iterator for all Observers watching this Group.
+
+	@method iterObservers
+	@within Group
+	@return () -> Observer?
+]=]
+function Group.iterObservers(self: Types.InternalGroup): () -> Types.Observer?
+	local observersMap = State.groupToObservers[self.id]
+	local currentObserverId = nil
+	return function(): Types.Observer?
+		currentObserverId = next(observersMap, currentObserverId)
+		if currentObserverId then
+			return State.observerIdToObserverObj[currentObserverId]
+		end
+
+		return nil
 	end
 end
 

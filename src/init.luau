@@ -12,9 +12,14 @@ local LinearBVH = require(script.Utils.LinearBVH)
 local queryPoint = LinearBVH.queryPoint
 local isPointInShape = Geometry.isPointInShape
 
-local zoneIdToZoneObj = State.zoneIdToZoneObj
 local zoneAttachedObservers = State.zoneAttachedObservers
+local zoneIdToZoneObj = State.zoneIdToZoneObj
+local entityData = State.entityData
+local entityToObservers = State.entityToObservers
 local observerIdToObserverObj = State.observerIdToObserverObj
+local groups = State.groups
+local entityToPlayer = State.entityToPlayer
+local entityToGroups = State.entityToGroups
 
 local staticCFrames = State.staticCFrames
 local staticHalfSizes = State.staticHalfSizes
@@ -48,26 +53,26 @@ local QuickZone = {
 }
 
 --[=[ 
-    Enables or disables automatic updating. If false, you must call `QuickZone:update(dt)` manually.
+	Enables or disables automatic updating. If false, you must call `QuickZone:update(dt)` manually.
 
-    @method setAutoUpdate
-    @within QuickZone
-    @param enabled boolean
-    @return QuickZone
+	@method setEnabled
+	@within QuickZone
+	@param enabled boolean
+	@return QuickZone
 ]=]
-function QuickZone:setAutoUpdate(enabled: boolean): QuickZone
+function QuickZone:setEnabled(enabled: boolean): QuickZone
 	Scheduler.setAutoUpdate(enabled)
 	return QuickZone
 end
 
 --[=[ 
-    Manually processes the spatial queries and trigger callbacks.
-    This is only necessary if `setAutoUpdate` is set to false.
+	Manually processes the spatial queries and trigger callbacks.
+	This is only necessary if `setAutoUpdate` is set to false.
 
-    @method update
-    @within QuickZone
-    @param dt number -- Delta time
-    @return QuickZone
+	@method update
+	@within QuickZone
+	@param dt number -- Delta time
+	@return QuickZone
 ]=]
 function QuickZone:update(dt: number): QuickZone
 	Scheduler.update(dt)
@@ -75,31 +80,16 @@ function QuickZone:update(dt: number): QuickZone
 end
 
 --[=[ 
-    Instantly forces the internal spatial trees to rebuild if any zones have been modified.
-    
-    The engine automatically calls this during `QuickZone:update(dt)`.
+	Instantly forces the internal spatial trees to rebuild if any zones have been modified.
+	
+	The engine automatically calls this during `QuickZone:update(dt)`.
 
-    @method rebuildTrees
-    @within QuickZone
-    @return QuickZone
+	@method rebuildTrees
+	@within QuickZone
+	@return QuickZone
 ]=]
 function QuickZone:rebuildTrees(): QuickZone
 	Scheduler.rebuildTrees()
-	return self
-end
-
---[=[ 
-    Sets how many times per second the engine should automatically poll auto-synced parts.
-    Lowering this (e.g., to 20 or 30) improves performance for games with 
-    hundreds of moving zones. Set to 0 to poll every frame.
-
-    @method setAutoSyncToPartRate
-    @within QuickZone
-    @param hz number
-    @return QuickZone
-]=]
-function QuickZone:setAutoSyncToPartRate(hz: number): QuickZone
-	Scheduler.setAutoSyncToPartRate(hz)
 	return self
 end
 
@@ -136,7 +126,7 @@ end
 ]=]
 function QuickZone:getObservers(): { Types.Observer }
 	local result = {}
-	for _, observer in State.observerIdToObserverObj do
+	for _, observer in observerIdToObserverObj do
 		table.insert(result, observer)
 	end
 	return result
@@ -152,7 +142,7 @@ end
 ]=]
 function QuickZone:getGroups(): { Types.Group }
 	local result = {}
-	for _, group in State.groups do
+	for _, group in groups do
 		table.insert(result, group)
 	end
 	return result
@@ -168,7 +158,7 @@ end
 ]=]
 function QuickZone:getZones(): { Types.Zone }
 	local result = {}
-	for _, zone in State.zoneIdToZoneObj do
+	for _, zone in zoneIdToZoneObj do
 		table.insert(result, zone)
 	end
 	return result
@@ -184,13 +174,13 @@ end
 ]=]
 function QuickZone:getEntities(): { Types.Entity }
 	local result = {}
-	for _, group in State.groups do
-		local count = #group.entities
-		if count > 0 then
-			local currentSize = #result
-			table.move(group.entities, 1, count, currentSize + 1, result)
-		end
+	local count = 0
+
+	for entity in entityData do
+		count += 1
+		result[count] = entity
 	end
+
 	return result
 end
 
@@ -203,7 +193,7 @@ end
 	@return Player?
 ]=]
 function QuickZone:getPlayerOfEntity(entity: Types.Entity): Player?
-	return State.entityToPlayer[entity]
+	return entityToPlayer[entity]
 end
 
 --[=[ 
@@ -216,12 +206,14 @@ end
 ]=]
 function QuickZone:getZonesAtPoint(position: Vector3): { Zone }
 	local results = {}
+	local count = 0
 
 	queryPoint(State.dynamicTree, position, function(zoneId)
 		if isPointInShape(position, dynamicCFrames[zoneId], dynamicHalfSizes[zoneId], dynamicTypes[zoneId]) then
 			local zone = zoneIdToZoneObj[zoneId]
 			if zone then
-				table.insert(results, zone)
+				count += 1
+				results[count] = zone
 			end
 		end
 	end)
@@ -230,7 +222,8 @@ function QuickZone:getZonesAtPoint(position: Vector3): { Zone }
 		if isPointInShape(position, staticCFrames[zoneId], staticHalfSizes[zoneId], staticTypes[zoneId]) then
 			local zone = zoneIdToZoneObj[zoneId]
 			if zone then
-				table.insert(results, zone)
+				count += 1
+				results[count] = zone
 			end
 		end
 	end)
@@ -249,85 +242,45 @@ end
 function QuickZone:getObserversAtPoint(position: Vector3): { Observer }
 	table.clear(foundIdsCache)
 	local results = {}
-
-	local function processValidZone(zoneId: number)
-		local observers = zoneAttachedObservers[zoneId]
-		if not observers then
-			return
-		end
-
-		for _, id in observers do
-			if foundIdsCache[id] then
-				continue
-			end
-			foundIdsCache[id] = true
-
-			local observer = observerIdToObserverObj[id]
-			if observer then
-				table.insert(results, observer)
-			end
-		end
-	end
+	local count = 0
 
 	queryPoint(State.dynamicTree, position, function(zoneId)
 		if isPointInShape(position, dynamicCFrames[zoneId], dynamicHalfSizes[zoneId], dynamicTypes[zoneId]) then
-			processValidZone(zoneId)
+			local observers = zoneAttachedObservers[zoneId]
+			if observers then
+				for _, id in observers do
+					if not foundIdsCache[id] then
+						foundIdsCache[id] = true
+						local observer = observerIdToObserverObj[id]
+						if observer then
+							count += 1
+							results[count] = observer
+						end
+					end
+				end
+			end
 		end
 	end)
 
 	queryPoint(State.staticTree, position, function(zoneId)
 		if isPointInShape(position, staticCFrames[zoneId], staticHalfSizes[zoneId], staticTypes[zoneId]) then
-			processValidZone(zoneId)
+			local observers = zoneAttachedObservers[zoneId]
+			if observers then
+				for _, id in observers do
+					if not foundIdsCache[id] then
+						foundIdsCache[id] = true
+						local observer = observerIdToObserverObj[id]
+						if observer then
+							count += 1
+							results[count] = observer
+						end
+					end
+				end
+			end
 		end
 	end)
 
 	return results
-end
-
---[=[ 
-	Returns an array of all Groups that the specified entity is currently in.
-
-	@method getGroupsOfEntity
-	@within QuickZone
-	@param entity Entity -- The Part, Model, or Table entity.
-	@return { Group }
-]=]
-function QuickZone:getGroupsOfEntity(entity: Types.Entity): { Types.Group }
-	local groupIds: { [number]: boolean } = State.entityToGroups[entity]
-	if not groupIds then
-		return {}
-	end
-
-	local results = {}
-	for groupId, _ in groupIds do
-		local group = State.groups[groupId]
-		if group then
-			table.insert(results, group)
-		end
-	end
-	return results
-end
-
---[=[ 
-	Returns an array of all Groups that the specified player is currently in.
-
-	@method getGroupsOfPlayer
-	@within QuickZone
-	@param player Player
-	@return { Group }
-]=]
-function QuickZone:getGroupsOfPlayer(player: Player): { Types.Group }
-	local character = player.Character
-	if not character then
-		return {}
-	end
-
-	local hrp = character:FindFirstChild('HumanoidRootPart') :: BasePart?
-	if not hrp then
-		return {}
-	end
-
-	return self:getGroupsOfEntity(hrp)
 end
 
 --[=[ 
@@ -339,14 +292,14 @@ end
 	@return { Observer }
 ]=]
 function QuickZone:getObserversOfEntity(entity: Types.Entity): { Types.Observer }
-	local activeObservers = State.entityToObservers[entity]
+	local activeObservers = entityToObservers[entity]
 	if not activeObservers then
 		return {}
 	end
 
 	local results = {}
 	for observerId, _ in activeObservers do
-		local observer = State.observerIdToObserverObj[observerId]
+		local observer = observerIdToObserverObj[observerId]
 		if observer then
 			table.insert(results, observer)
 		end
@@ -386,7 +339,7 @@ end
 	@return { Zone }
 ]=]
 function QuickZone:getZonesOfEntity(entity: Types.Entity): { Types.Zone }
-	local data = State.entityData[entity]
+	local data = entityData[entity]
 	if not data or not data.activeObserverMemberships then
 		return {}
 	end
@@ -400,7 +353,7 @@ function QuickZone:getZonesOfEntity(entity: Types.Entity): { Types.Zone }
 		end
 		seenZones[zoneId] = true
 
-		local zone = State.zoneIdToZoneObj[zoneId]
+		local zone = zoneIdToZoneObj[zoneId]
 		if zone then
 			table.insert(results, zone)
 		end
@@ -429,6 +382,282 @@ function QuickZone:getZonesOfPlayer(player: Player): { Types.Zone }
 	end
 
 	return self:getZonesOfEntity(hrp)
+end
+
+--[=[
+	Returns a zero-allocation iterator for all Groups in the system.
+
+	@method iterGroups
+	@within QuickZone
+	@return () -> Group?
+]=]
+function QuickZone:iterGroups(): () -> Types.Group?
+	local groupId = nil
+	return function(): Types.Group?
+		groupId = next(groups, groupId)
+		return groupId and groups[groupId] or nil
+	end
+end
+
+--[=[
+	Returns a zero-allocation iterator for all Zones in the system.
+
+	@method iterZones
+	@within QuickZone
+	@return () -> Zone?
+]=]
+function QuickZone:iterZones(): () -> Types.Zone?
+	local zoneId = nil
+
+	return function(): Types.Zone?
+		zoneId = next(zoneIdToZoneObj, zoneId)
+		return zoneId and zoneIdToZoneObj[zoneId] or nil
+	end
+end
+
+--[=[
+	Returns a zero-allocation iterator for all Entities in the system.
+
+	@method iterEntities
+	@within QuickZone
+	@return () -> Entity?
+]=]
+function QuickZone:iterEntities(): () -> Types.Entity?
+	local entity = nil
+
+	return function(): Types.Entity?
+		entity = next(entityData, entity)
+		return entity
+	end
+end
+
+--[=[ 
+	Returns a zero-allocation iterator for all Groups that the specified entity is currently in.
+
+	@method iterGroupsOfEntity
+	@within QuickZone
+	@param entity Entity
+	@return () -> Group?
+]=]
+function QuickZone:iterGroupsOfEntity(entity: Types.Entity): () -> Types.Group?
+	local groupIds = entityToGroups[entity]
+	if not groupIds then
+		return function()
+			return nil
+		end
+	end
+
+	local groupId = nil
+	return function(): Types.Group?
+		groupId = next(groupIds, groupId)
+		return groupId and groups[groupId] or nil
+	end
+end
+
+--[=[ 
+	Returns a zero-allocation iterator for all Observers currently tracking the given entity.
+
+	@method iterObserversOfEntity
+	@within QuickZone
+	@param entity Entity
+	@return () -> Observer?
+]=]
+function QuickZone:iterObserversOfEntity(entity: Types.Entity): () -> Types.Observer?
+	local activeObservers = entityToObservers[entity]
+	if not activeObservers then
+		return function()
+			return nil
+		end
+	end
+
+	local observerId = nil
+	return function(): Types.Observer?
+		observerId = next(activeObservers, observerId)
+		return observerId and observerIdToObserverObj[observerId] or nil
+	end
+end
+
+--[=[
+	Returns an iterator that returns every unique Observer watching the given point.
+
+	@method iterObserversAtPoint
+	@within QuickZone
+	@param point Vector3
+	@return () -> Observer?
+]=]
+function QuickZone:iterObserversAtPoint(point: Vector3)
+	local dynamicTree = State.dynamicTree
+	local staticTree = State.staticTree
+
+	local dynamicNodes = dynamicTree and dynamicTree.nodes or {}
+	local dynamicCount = dynamicTree and dynamicTree.count or 0
+
+	local staticNodes = staticTree and staticTree.nodes or {}
+	local staticCount = staticTree and staticTree.count or 0
+
+	local px, py, pz = point.X, point.Y, point.Z
+
+	local index = 1
+	local checkingDynamic = true
+
+	local seenObservers = {} :: { [number]: boolean }
+	local currentZoneObservers = nil :: { number }?
+	local currentObserverIndex = 1
+
+	return function(): Types.Observer?
+		while true do
+			if currentZoneObservers then
+				while currentObserverIndex <= #currentZoneObservers do
+					local observerId = currentZoneObservers[currentObserverIndex]
+					currentObserverIndex += 1
+
+					if not seenObservers[observerId] then
+						seenObservers[observerId] = true
+						local obs = observerIdToObserverObj[observerId]
+						if obs then
+							return obs
+						end
+					end
+				end
+				currentZoneObservers = nil
+			end
+
+			if checkingDynamic then
+				local foundZone = false
+				while index <= dynamicCount do
+					local node = dynamicNodes[index]
+					local min, max = node.min, node.max
+
+					if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
+						local hitId = node.id
+						index += 1
+
+						if hitId > 0 then
+							if
+								isPointInShape(
+									point,
+									dynamicCFrames[hitId],
+									dynamicHalfSizes[hitId],
+									dynamicTypes[hitId]
+								)
+							then
+								currentZoneObservers = zoneAttachedObservers[hitId]
+								currentObserverIndex = 1
+								foundZone = true
+								break
+							end
+						end
+					else
+						index = node.skipIndex
+					end
+				end
+
+				if foundZone then
+					continue
+				end
+
+				checkingDynamic = false
+				index = 1
+			end
+
+			if not checkingDynamic then
+				local foundZone = false
+				while index <= staticCount do
+					local node = staticNodes[index]
+					local min, max = node.min, node.max
+
+					if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
+						local hitId = node.id
+						index += 1
+
+						if hitId > 0 then
+							if
+								isPointInShape(point, staticCFrames[hitId], staticHalfSizes[hitId], staticTypes[hitId])
+							then
+								currentZoneObservers = zoneAttachedObservers[hitId]
+								currentObserverIndex = 1
+								foundZone = true
+								break
+							end
+						end
+					else
+						index = node.skipIndex
+					end
+				end
+
+				if foundZone then
+					continue
+				end
+			end
+
+			return nil
+		end
+	end
+end
+
+--[=[
+	Returns an iterator that returns every Zone intersecting the given point.
+	Ideal for zero-allocation ECS queries. Safe to `break` out of early.
+]=]
+function QuickZone:iterZonesAtPoint(point: Vector3)
+	local dynamicTree = State.dynamicTree
+	local staticTree = State.staticTree
+
+	local dynamicNodes = dynamicTree.nodes
+	local dynamicCount = dynamicTree.count or 0
+
+	local staticNodes = staticTree.nodes
+	local staticCount = staticTree.count or 0
+
+	local px, py, pz = point.X, point.Y, point.Z
+
+	local index = 1
+	local checkingDynamic = true
+
+	return function(): Types.Zone?
+		if checkingDynamic then
+			while index <= dynamicCount do
+				local node = dynamicNodes[index]
+				local min, max = node.min, node.max
+				if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
+					index += 1
+					local hitId = node.id
+					if hitId > 0 then
+						if
+							isPointInShape(point, dynamicCFrames[hitId], dynamicHalfSizes[hitId], dynamicTypes[hitId])
+						then
+							return zoneIdToZoneObj[hitId]
+						end
+					end
+				else
+					index = node.skipIndex
+				end
+			end
+
+			checkingDynamic = false
+			index = 1
+		end
+
+		if not checkingDynamic then
+			while index <= staticCount do
+				local node = staticNodes[index]
+				local min, max = node.min, node.max
+				if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
+					index += 1
+					local hitId = node.id
+					if hitId > 0 then
+						if isPointInShape(point, staticCFrames[hitId], staticHalfSizes[hitId], staticTypes[hitId]) then
+							return zoneIdToZoneObj[hitId]
+						end
+					end
+				else
+					index = node.skipIndex
+				end
+			end
+		end
+
+		return nil
+	end
 end
 
 --[=[ 
@@ -485,11 +714,11 @@ function QuickZone:visualize(enabled: boolean): QuickZone
 		end
 
 		-- Draw static zones
-		for id, cframe in State.staticCFrames do
+		for id, cframe in staticCFrames do
 			local box = getOrCreateVisual(id)
-			local halfSize = State.staticHalfSizes[id]
+			local halfSize = staticHalfSizes[id]
 
-			local observers = State.zoneAttachedObservers[id]
+			local observers = zoneAttachedObservers[id]
 			local isActive = observers and next(observers) ~= nil
 			local color = isActive and Config.Debug.staticActive or Config.Debug.staticInactive
 
@@ -499,11 +728,11 @@ function QuickZone:visualize(enabled: boolean): QuickZone
 		end
 
 		-- Draw dynamic zones
-		for id, cframe in State.dynamicCFrames do
+		for id, cframe in dynamicCFrames do
 			local box = getOrCreateVisual(id)
-			local halfSize = State.dynamicHalfSizes[id]
+			local halfSize = dynamicHalfSizes[id]
 
-			local observers = State.zoneAttachedObservers[id]
+			local observers = zoneAttachedObservers[id]
 			local isActive = observers and next(observers) ~= nil
 			local color = isActive and Config.Debug.dynamicActive or Config.Debug.dynamicInactive
 
@@ -514,7 +743,7 @@ function QuickZone:visualize(enabled: boolean): QuickZone
 
 		-- Destroy removed zones
 		for id, box in debugVisuals do
-			if not State.staticCFrames[id] and not State.dynamicCFrames[id] then
+			if not staticCFrames[id] and not dynamicCFrames[id] then
 				box:Destroy()
 				debugVisuals[id] = nil
 			end
@@ -523,74 +752,5 @@ function QuickZone:visualize(enabled: boolean): QuickZone
 
 	return self
 end
-
--- --[=[
---     Returns an iterator that yields every Zone intersecting the given point.
---     Ideal for zero-allocation ECS queries. Safe to `break` out of early.
--- ]=]
--- function QuickZone:iterZonesAtPoint(point: Vector3)
--- 	-- Grab local references to avoid indexing `State` inside the tight loop
--- 	local dynamicTree = State.dynamicTree
--- 	local staticTree = State.staticTree
-
--- 	local dynNodes = dynamicTree.nodes
--- 	local dynCount = dynamicTree.count or 0
-
--- 	local statNodes = staticTree.nodes
--- 	local statCount = staticTree.count or 0
-
--- 	local px, py, pz = point.X, point.Y, point.Z
-
--- 	local index = 1
--- 	local checkingDynamic = true
-
--- 	-- This closure acts as our state machine
--- 	return function(): Types.Zone?
--- 		if checkingDynamic then
--- 			while index <= dynCount do
--- 				local node = dynNodes[index]
--- 				local min, max = node.min, node.max
-
--- 				if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
--- 					if node.id > 0 then
--- 						local hitId = node.id
--- 						index += 1
--- 						-- Yield the actual Zone object!
--- 						return zoneIdToZoneObj[hitId]
--- 					else
--- 						index += 1
--- 					end
--- 				else
--- 					index = node.skipIndex
--- 				end
--- 			end
-
--- 			-- Dynamic tree finished! Swap to static tree for the next iteration.
--- 			checkingDynamic = false
--- 			index = 1
--- 		end
-
--- 		if not checkingDynamic then
--- 			while index <= statCount do
--- 				local node = statNodes[index]
--- 				local min, max = node.min, node.max
-
--- 				if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
--- 					if node.id > 0 then
--- 						local hitId = node.id
--- 						index += 1
--- 						return zoneIdToZoneObj[hitId]
--- 					else
--- 						index += 1
--- 					end
--- 				else
--- 					index = node.skipIndex
--- 				end
--- 			end
--- 		end
-
--- 		return nil -- Both trees exhausted
--- 	end
--- end
 
 return QuickZone

@@ -253,6 +253,21 @@ function Zones.contains(self: Types.InternalZones, zone: Types.Zone): boolean
 	return self.zones[zone] == true
 end
 
+--[=[
+    Returns a zero-allocation iterator for all Zones within this group.
+
+    @method iterZones
+    @within Zones
+    @return () -> Zone?
+]=]
+function Zones.iterZones(self: Types.InternalZones): () -> Types.Zone?
+	local currentZone = nil
+	return function(): Types.Zone?
+		currentZone = next(self.zones, currentZone)
+		return currentZone
+	end
+end
+
 --[=[ 
 	Fires when `destroy()` is called on zones
 

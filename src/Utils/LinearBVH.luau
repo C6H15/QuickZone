@@ -179,13 +179,11 @@ function LinearBVH.queryPoint(tree: Types.Tree, point: Vector3, callback: (id: n
 	while index <= count do
 		local node = nodes[index]
 		local min, max = node.min, node.max
-
 		if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
-			if node.id > 0 then
-				callback(node.id)
-				index += 1 -- Leaf
-			else
-				index += 1 -- Branch
+			index += 1
+			local nodeId = node.id
+			if nodeId > 0 then
+				callback(nodeId)
 			end
 		else
 			index = node.skipIndex -- Skip branch

@@ -213,17 +213,7 @@ function Scheduler.update(dt: number)
 
 		while processed < workQuota do
 			local entity = list[idx]
-			local data = entityData[entity] :: Types.EntityData?
-
-			-- Race condition guard
-			if not data then
-				idx += 1
-				if idx > totalEntities then
-					idx = 1
-				end
-				processed += 1
-				continue
-			end
+			local data = entityData[entity] :: Types.EntityData
 
 			-- Strategy
 			local pos

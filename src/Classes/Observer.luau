@@ -8,9 +8,7 @@ local State = require(script.Parent.Parent.Core.State)
 local updateProfile = require(script.Parent.Parent.Core.updateProfile)
 local Types = require(script.Parent.Parent.Types)
 local Geometry = require(script.Parent.Parent.Utils.Geometry)
-local LinearBVH = require(script.Parent.Parent.Utils.LinearBVH)
 
-local queryPoint = LinearBVH.queryPoint
 local isPointInShape = Geometry.isPointInShape
 
 local zoneAttachedObservers = State.zoneAttachedObservers
@@ -983,39 +981,75 @@ end
 	@return boolean
 ]=]
 function Observer.isPointInside(self: Types.InternalObserver, position: Vector3): boolean
-	local isInside = false
+	local px, py, pz = position.X, position.Y, position.Z
+	local myId = self.id
 
-	queryPoint(State.dynamicTree, position, function(zoneId)
-		if isInside then
-			return
-		end
+	local dynamicTree = State.dynamicTree
+	if dynamicTree and dynamicTree.nodes then
+		local nodes = dynamicTree.nodes
+		local index = 1
+		local count = dynamicTree.count
 
-		local observers = zoneAttachedObservers[zoneId]
-		if observers and table.find(observers, self.id) then
-			if isPointInShape(position, dynamicCFrames[zoneId], dynamicHalfSizes[zoneId], dynamicTypes[zoneId]) then
-				isInside = true
+		while index <= count do
+			local node = nodes[index]
+			local min, max = node.min, node.max
+
+			if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
+				local hitId = node.id
+				index += 1
+
+				if hitId > 0 then
+					local observers = zoneAttachedObservers[hitId]
+					if observers and table.find(observers, myId) then
+						if
+							isPointInShape(
+								position,
+								dynamicCFrames[hitId],
+								dynamicHalfSizes[hitId],
+								dynamicTypes[hitId]
+							)
+						then
+							return true
+						end
+					end
+				end
+			else
+				index = node.skipIndex
 			end
 		end
-	end)
-
-	if isInside then
-		return true
 	end
 
-	queryPoint(State.staticTree, position, function(zoneId)
-		if isInside then
-			return
-		end
+	local staticTree = State.staticTree
+	if staticTree and staticTree.nodes then
+		local nodes = staticTree.nodes
+		local index = 1
+		local count = staticTree.count
 
-		local observers = zoneAttachedObservers[zoneId]
-		if observers and table.find(observers, self.id) then
-			if isPointInShape(position, staticCFrames[zoneId], staticHalfSizes[zoneId], staticTypes[zoneId]) then
-				isInside = true
+		while index <= count do
+			local node = nodes[index]
+			local min, max = node.min, node.max
+
+			if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
+				local hitId = node.id
+				index += 1
+
+				if hitId > 0 then
+					local observers = zoneAttachedObservers[hitId]
+					if observers and table.find(observers, myId) then
+						if
+							isPointInShape(position, staticCFrames[hitId], staticHalfSizes[hitId], staticTypes[hitId])
+						then
+							return true
+						end
+					end
+				end
+			else
+				index = node.skipIndex
 			end
 		end
-	end)
+	end
 
-	return isInside
+	return false
 end
 
 --[=[ 
@@ -1202,15 +1236,69 @@ function Observer.getZoneOfPlayer(self: Types.InternalObserver, player: Player):
 end
 
 --[=[ 
+	Returns a zero-allocation iterator for all Zones currently attached to this observer.
+
+	@method iterZones
+	@within Observer
+	@return () -> Zone?
+]=]
+function Observer.iterZones(self: Types.InternalObserver): () -> Types.Zone?
+	local zoneId = nil
+	local attachedList = nil
+	local myId = self.id
+
+	return function(): Types.Zone?
+		while true do
+			zoneId, attachedList = next(zoneAttachedObservers, zoneId)
+
+			if not zoneId then
+				return nil
+			end
+
+			if table.find(attachedList, myId) then
+				local zone = State.zoneIdToZoneObj[zoneId]
+				if zone then
+					return zone
+				end
+			end
+		end
+	end
+end
+
+--[=[ 
+	Returns a zero-allocation iterator for all Groups currently monitored by this observer.
+
+	@method iterGroups
+	@within Observer
+	@return () -> Group?
+]=]
+function Observer.iterGroups(self: Types.InternalObserver): () -> Types.Group?
+	local groupId = nil
+	local observersMap = nil
+	local myId = self.id
+
+	return function(): Types.Group?
+		while true do
+			groupId, observersMap = next(State.groupToObservers, groupId)
+
+			if not groupId then
+				return nil
+			end
+
+			if observersMap[myId] then
+				local group = State.groups[groupId]
+				if group then
+					return group
+				end
+			end
+		end
+	end
+end
+
+--[=[ 
 	Iterates over all entities currently inside zones attached to this observer.
 	This provides a zero-allocation way to loop through entities, ideal for high-frequency 
 	checks.
-
-	```lua
-	for entity in observer:iterEntitiesInside() do
-		print(entity.Name .. " is inside!")
-	end
-	```
 
 	@method iterEntitiesInside
 	@within Observer
@@ -1228,7 +1316,6 @@ end
 
 --[=[ 
 	Iterates over all players currently inside zones attached to this observer.
-	Minimizes GC pressure for high-frequency polling.
 
 	@method iterPlayersInside
 	@within Observer
@@ -1259,12 +1346,6 @@ end
 --[=[ 
 	Iterates over all tracked entities and returns both the Entity and the specific 
 	Zone they are currently in for this observer.
-
-	```lua
-	for entity, zone in observer:iterZonesOfEntities() do
-		print(entity.Name .. " is in " .. zone:getId())
-	end
-	```
 
 	@method iterZonesOfEntities
 	@within Observer
