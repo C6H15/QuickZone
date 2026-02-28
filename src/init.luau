@@ -117,8 +117,61 @@ function QuickZone:setFrameBudget(ms: number): QuickZone
 	return QuickZone
 end
 
+--[=[
+	Instantly and safely removes the entity from the QuickZone engine. 
+	It will be removed from all Groups, resolving any active Observers 
+	and firing their `onExit` events.
+
+	@method removeEntity
+	@within QuickZone
+	@param entity Entity
+	@return QuickZone
+]=]
+function QuickZone:removeEntity(entity: Types.Entity): QuickZone
+	local groupIds = entityToGroups[entity]
+	if not groupIds then
+		return self
+	end
+
+	local idsToRemove = {}
+	for groupId in groupIds do
+		table.insert(idsToRemove, groupId)
+	end
+
+	for _, groupId in idsToRemove do
+		local group = groups[groupId]
+		if group then
+			group:remove(entity)
+		end
+	end
+
+	return self
+end
+
+--[=[
+	Safely removes a player's character from the QuickZone engine.
+
+	@method removePlayer
+	@within QuickZone
+	@param player Player
+	@return QuickZone
+]=]
+function QuickZone:removePlayer(player: Player): QuickZone
+	local character = player.Character
+	if not character then
+		return self
+	end
+
+	local hrp = character:FindFirstChild('HumanoidRootPart') :: BasePart?
+	if not hrp then
+		return self
+	end
+
+	return self:removeEntity(hrp)
+end
+
 --[=[ 
-	Returns an array of all Observers currently existing in the system.
+	Returns an array of all Observers currently existing.
 
 	@method getObservers
 	@within QuickZone
@@ -134,7 +187,7 @@ end
 
 --[=[ 
 	Returns an array of all Groups (including PlayerGroups) currently 
-	registered in the system.
+	registered.
 
 	@method getGroups
 	@within QuickZone
@@ -149,7 +202,7 @@ function QuickZone:getGroups(): { Types.Group }
 end
 
 --[=[ 
-	Returns an array containing every Zone currently registered in the system.
+	Returns an array containing every Zone currently registered.
 	This includes both static and dynamic zones.
 
 	@method getZones
@@ -231,104 +284,6 @@ function QuickZone:getZonesAtPoint(position: Vector3): { Zone }
 	return results
 end
 
---[=[
-	Performs a spatial query to find all observers containing the given point.
-
-	@method getObserversAtPoint
-	@within QuickZone
-	@param position Vector3 -- The world position to check.
-	@return { Observer }
-]=]
-function QuickZone:getObserversAtPoint(position: Vector3): { Observer }
-	table.clear(foundIdsCache)
-	local results = {}
-	local count = 0
-
-	queryPoint(State.dynamicTree, position, function(zoneId)
-		if isPointInShape(position, dynamicCFrames[zoneId], dynamicHalfSizes[zoneId], dynamicTypes[zoneId]) then
-			local observers = zoneAttachedObservers[zoneId]
-			if observers then
-				for _, id in observers do
-					if not foundIdsCache[id] then
-						foundIdsCache[id] = true
-						local observer = observerIdToObserverObj[id]
-						if observer then
-							count += 1
-							results[count] = observer
-						end
-					end
-				end
-			end
-		end
-	end)
-
-	queryPoint(State.staticTree, position, function(zoneId)
-		if isPointInShape(position, staticCFrames[zoneId], staticHalfSizes[zoneId], staticTypes[zoneId]) then
-			local observers = zoneAttachedObservers[zoneId]
-			if observers then
-				for _, id in observers do
-					if not foundIdsCache[id] then
-						foundIdsCache[id] = true
-						local observer = observerIdToObserverObj[id]
-						if observer then
-							count += 1
-							results[count] = observer
-						end
-					end
-				end
-			end
-		end
-	end)
-
-	return results
-end
-
---[=[ 
-	Returns an array of all Observers currently tracking the given entity.
-
-	@method getObserversOfEntity
-	@within QuickZone
-	@param entity Entity
-	@return { Observer }
-]=]
-function QuickZone:getObserversOfEntity(entity: Types.Entity): { Types.Observer }
-	local activeObservers = entityToObservers[entity]
-	if not activeObservers then
-		return {}
-	end
-
-	local results = {}
-	for observerId, _ in activeObservers do
-		local observer = observerIdToObserverObj[observerId]
-		if observer then
-			table.insert(results, observer)
-		end
-	end
-	return results
-end
-
---[=[ 
-	Returns an array of all Observers currently tracking the given player.
-
-	@method getObserversOfPlayer
-	@within QuickZone
-	@param player Player
-	@return { Observer }
-]=]
-function QuickZone:getObserversOfPlayer(player: Player): { Types.Observer }
-	local character = player.Character
-	if not character then
-		return {}
-	end
-
-	local hrp = character:FindFirstChild('HumanoidRootPart') :: BasePart?
-	if not hrp then
-		return {}
-	end
-
-	return self:getObserversOfEntity(hrp)
-end
-
 --[=[ 
 	Returns an array of all Zones the given entity is actively inside, 
 	based on its observer memberships.
@@ -384,8 +339,58 @@ function QuickZone:getZonesOfPlayer(player: Player): { Types.Zone }
 	return self:getZonesOfEntity(hrp)
 end
 
+--[=[ 
+	Returns an array of all Groups that the specified entity is currently in.
+
+	@method getGroupsOfEntity
+	@within QuickZone
+	@param entity Entity
+	@return { Group }
+]=]
+function QuickZone:getGroupsOfEntity(entity: Types.Entity): { Types.Group }
+	local groupIds = entityToGroups[entity]
+	if not groupIds then
+		return {}
+	end
+
+	local results = {}
+	local count = 0
+
+	for groupId in groupIds do
+		local group = groups[groupId]
+		if group then
+			count += 1
+			results[count] = group
+		end
+	end
+
+	return results
+end
+
+--[=[ 
+	Returns an array of all Groups that the specified player is currently in.
+
+	@method getGroupsOfPlayer
+	@within QuickZone
+	@param player Player
+	@return { Group }
+]=]
+function QuickZone:getGroupsOfPlayer(player: Player): { Types.Group }
+	local character = player.Character
+	if not character then
+		return {}
+	end
+
+	local hrp = character:FindFirstChild('HumanoidRootPart') :: BasePart?
+	if not hrp then
+		return {}
+	end
+
+	return self:getGroupsOfEntity(hrp)
+end
+
 --[=[
-	Returns a zero-allocation iterator for all Groups in the system.
+	Returns a zero-allocation iterator for all Groups.
 
 	@method iterGroups
 	@within QuickZone
@@ -400,7 +405,7 @@ function QuickZone:iterGroups(): () -> Types.Group?
 end
 
 --[=[
-	Returns a zero-allocation iterator for all Zones in the system.
+	Returns a zero-allocation iterator for all Zones.
 
 	@method iterZones
 	@within QuickZone
@@ -416,7 +421,7 @@ function QuickZone:iterZones(): () -> Types.Zone?
 end
 
 --[=[
-	Returns a zero-allocation iterator for all Entities in the system.
+	Returns a zero-allocation iterator for all entities.
 
 	@method iterEntities
 	@within QuickZone
@@ -428,6 +433,22 @@ function QuickZone:iterEntities(): () -> Types.Entity?
 	return function(): Types.Entity?
 		entity = next(entityData, entity)
 		return entity
+	end
+end
+
+--[=[
+	Returns a zero-allocation iterator for all Observers.
+
+	@method iterObservers
+	@within QuickZone
+	@return () -> Observer?
+]=]
+function QuickZone:iterObservers(): () -> Types.Observer?
+	local observerId = nil
+
+	return function(): Types.Observer?
+		observerId = next(observerIdToObserverObj, observerId)
+		return observerId and observerIdToObserverObj[observerId] or nil
 	end
 end
 
@@ -455,151 +476,106 @@ function QuickZone:iterGroupsOfEntity(entity: Types.Entity): () -> Types.Group?
 end
 
 --[=[ 
-	Returns a zero-allocation iterator for all Observers currently tracking the given entity.
+	Returns a zero-allocation iterator for all Groups that the specified player is currently in.
 
-	@method iterObserversOfEntity
+	@method iterGroupsOfPlayer
 	@within QuickZone
-	@param entity Entity
-	@return () -> Observer?
+	@param player Player
+	@return () -> Group?
 ]=]
-function QuickZone:iterObserversOfEntity(entity: Types.Entity): () -> Types.Observer?
-	local activeObservers = entityToObservers[entity]
-	if not activeObservers then
+function QuickZone:iterGroupsOfPlayer(player: Player): () -> Types.Group?
+	local character = player.Character
+	if not character then
 		return function()
 			return nil
 		end
 	end
 
-	local observerId = nil
-	return function(): Types.Observer?
-		observerId = next(activeObservers, observerId)
-		return observerId and observerIdToObserverObj[observerId] or nil
-	end
-end
-
---[=[
-	Returns an iterator that returns every unique Observer watching the given point.
-
-	@method iterObserversAtPoint
-	@within QuickZone
-	@param point Vector3
-	@return () -> Observer?
-]=]
-function QuickZone:iterObserversAtPoint(point: Vector3)
-	local dynamicTree = State.dynamicTree
-	local staticTree = State.staticTree
-
-	local dynamicNodes = dynamicTree and dynamicTree.nodes or {}
-	local dynamicCount = dynamicTree and dynamicTree.count or 0
-
-	local staticNodes = staticTree and staticTree.nodes or {}
-	local staticCount = staticTree and staticTree.count or 0
-
-	local px, py, pz = point.X, point.Y, point.Z
-
-	local index = 1
-	local checkingDynamic = true
-
-	local seenObservers = {} :: { [number]: boolean }
-	local currentZoneObservers = nil :: { number }?
-	local currentObserverIndex = 1
-
-	return function(): Types.Observer?
-		while true do
-			if currentZoneObservers then
-				while currentObserverIndex <= #currentZoneObservers do
-					local observerId = currentZoneObservers[currentObserverIndex]
-					currentObserverIndex += 1
-
-					if not seenObservers[observerId] then
-						seenObservers[observerId] = true
-						local obs = observerIdToObserverObj[observerId]
-						if obs then
-							return obs
-						end
-					end
-				end
-				currentZoneObservers = nil
-			end
-
-			if checkingDynamic then
-				local foundZone = false
-				while index <= dynamicCount do
-					local node = dynamicNodes[index]
-					local min, max = node.min, node.max
-
-					if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
-						local hitId = node.id
-						index += 1
-
-						if hitId > 0 then
-							if
-								isPointInShape(
-									point,
-									dynamicCFrames[hitId],
-									dynamicHalfSizes[hitId],
-									dynamicTypes[hitId]
-								)
-							then
-								currentZoneObservers = zoneAttachedObservers[hitId]
-								currentObserverIndex = 1
-								foundZone = true
-								break
-							end
-						end
-					else
-						index = node.skipIndex
-					end
-				end
-
-				if foundZone then
-					continue
-				end
-
-				checkingDynamic = false
-				index = 1
-			end
-
-			if not checkingDynamic then
-				local foundZone = false
-				while index <= staticCount do
-					local node = staticNodes[index]
-					local min, max = node.min, node.max
-
-					if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
-						local hitId = node.id
-						index += 1
-
-						if hitId > 0 then
-							if
-								isPointInShape(point, staticCFrames[hitId], staticHalfSizes[hitId], staticTypes[hitId])
-							then
-								currentZoneObservers = zoneAttachedObservers[hitId]
-								currentObserverIndex = 1
-								foundZone = true
-								break
-							end
-						end
-					else
-						index = node.skipIndex
-					end
-				end
-
-				if foundZone then
-					continue
-				end
-			end
-
+	local hrp = character:FindFirstChild('HumanoidRootPart') :: BasePart?
+	if not hrp then
+		return function()
 			return nil
 		end
 	end
+
+	return self:iterGroupsOfEntity(hrp)
+end
+
+--[=[ 
+	Returns an iterator for all unique Zones the given entity is actively inside.
+
+	@method iterZonesOfEntity
+	@within QuickZone
+	@param entity Entity
+	@return () -> Zone?
+]=]
+function QuickZone:iterZonesOfEntity(entity: Types.Entity): () -> Types.Zone?
+	local data = entityData[entity]
+	if not data or not data.activeObserverMemberships then
+		return function()
+			return nil
+		end
+	end
+
+	local memberships = data.activeObserverMemberships
+	local seenZones = {}
+	local observerId = nil
+
+	return function(): Types.Zone?
+		while true do
+			observerId = next(memberships, observerId)
+			if not observerId then
+				return nil
+			end
+
+			local zoneId = memberships[observerId]
+			if not seenZones[zoneId] then
+				seenZones[zoneId] = true
+				local zone = zoneIdToZoneObj[zoneId]
+				if zone then
+					return zone
+				end
+			end
+		end
+	end
+end
+
+--[=[ 
+	Returns an iterator for all unique Zones the given player is actively inside.
+
+	@method iterZonesOfPlayer
+	@within QuickZone
+	@param player Player
+	@return () -> Zone?
+]=]
+function QuickZone:iterZonesOfPlayer(player: Player): () -> Types.Zone?
+	local character = player.Character
+	if not character then
+		return function()
+			return nil
+		end
+	end
+
+	local hrp = character:FindFirstChild('HumanoidRootPart') :: BasePart?
+	if not hrp then
+		return function()
+			return nil
+		end
+	end
+
+	return self:iterZonesOfEntity(hrp)
 end
 
 --[=[
 	Returns an iterator that returns every Zone intersecting the given point.
 	Ideal for zero-allocation ECS queries. Safe to `break` out of early.
+
+	@method iterZonesAtPoint
+	@within QuickZone
+	@param point Vector3
+	@return () -> Zone?
 ]=]
-function QuickZone:iterZonesAtPoint(point: Vector3)
+function QuickZone:iterZonesAtPoint(point: Vector3): () -> Zone?
 	local dynamicTree = State.dynamicTree
 	local staticTree = State.staticTree
 

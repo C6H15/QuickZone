@@ -1236,6 +1236,84 @@ function Observer.getZoneOfPlayer(self: Types.InternalObserver, player: Player):
 end
 
 --[=[ 
+	Returns the specific Zone the local player is currently tracked under for this Observer.
+
+	@client
+	@method getZoneOfLocalPlayer
+	@within Observer
+	@return Zone?
+]=]
+function Observer.getZoneOfLocalPlayer(self: Types.InternalObserver): Types.Zone?
+	if not IS_CLIENT then
+		error('[QuickZone] Observer:getZoneOfLocalPlayer can only be called on the Client.', 2)
+	end
+	return self:getZoneOfPlayer(Players.LocalPlayer)
+end
+
+--[=[ 
+	Returns a dictionary mapping all tracked Entities currently inside to their specific Zone.
+
+	@method getZonesOfEntities
+	@within Observer
+	@return { [Entity]: Zone }
+]=]
+function Observer.getZonesOfEntities(self: Types.InternalObserver): { [Types.Entity]: Types.Zone }
+	local results = {}
+	local entities = State.observerTrackingEntities[self.id]
+	if not entities then
+		return results
+	end
+
+	for entity in entities do
+		local data = State.entityData[entity]
+		if data then
+			local zoneId = data.activeObserverMemberships[self.id]
+			if zoneId then
+				local zone = State.zoneIdToZoneObj[zoneId]
+				if zone then
+					results[entity] = zone
+				end
+			end
+		end
+	end
+
+	return results
+end
+
+--[=[ 
+	Returns a dictionary mapping all tracked Players currently inside to their specific Zone.
+
+	@method getZonesOfPlayers
+	@within Observer
+	@return { [Player]: Zone }
+]=]
+function Observer.getZonesOfPlayers(self: Types.InternalObserver): { [Player]: Types.Zone }
+	local results = {}
+	local entities = State.observerTrackingEntities[self.id]
+	if not entities then
+		return results
+	end
+
+	for entity in entities do
+		local player = State.entityToPlayer[entity]
+		if player then
+			local data = State.entityData[entity]
+			if data then
+				local zoneId = data.activeObserverMemberships[self.id]
+				if zoneId then
+					local zone = State.zoneIdToZoneObj[zoneId]
+					if zone then
+						results[player] = zone
+					end
+				end
+			end
+		end
+	end
+
+	return results
+end
+
+--[=[ 
 	Returns a zero-allocation iterator for all Zones currently attached to this observer.
 
 	@method iterZones

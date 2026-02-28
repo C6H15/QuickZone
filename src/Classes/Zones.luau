@@ -123,21 +123,6 @@ function Zones.getZones(self: Types.InternalZones): { Types.Zone }
 end
 
 --[=[ 
-	Returns an array of all Observers currently attached.
-
-	@method getObservers
-	@within Zones
-	@return { Observer }
-]=]
-function Zones.getObservers(self: Types.InternalZones): { Types.Observer }
-	local result = {}
-	for observer, _ in self.observers do
-		table.insert(result, observer)
-	end
-	return result
-end
-
---[=[ 
 	Returns whether Zones is set to dynamic.
 
 	@method isDynamic

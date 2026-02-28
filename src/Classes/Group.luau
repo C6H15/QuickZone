@@ -585,31 +585,6 @@ function Group.getPlayers(self: Types.InternalGroup): { Player }
 	return result
 end
 
---[=[
-	Returns a list of all Observers currently watching the group.
-
-	```lua
-	local observers = myGroup:getObservers()
-	print('This group is being watched by ' .. #observers .. ' observers.')
-	```
-
-	@method getObservers
-	@within Group
-	@return { Observer }
-]=]
-function Group.getObservers(self: Types.InternalGroup): { Types.Observer }
-	local result = {}
-	local observersMap = State.groupToObservers[self.id]
-	for observerId, _ in observersMap do
-		local observer = State.observerIdToObserverObj[observerId]
-		if observer then
-			table.insert(result, observer)
-		end
-	end
-
-	return result
-end
-
 --[=[ 
 	Iterates over all entities currently belonging to the group.
 	Provides a zero-allocation way to loop through entities, ideal for high-frequency 
@@ -659,26 +634,6 @@ function Group.iterPlayers(self: Types.InternalGroup): () -> Player?
 
 			return player
 		end
-	end
-end
-
---[=[
-	Returns a zero-allocation iterator for all Observers watching this Group.
-
-	@method iterObservers
-	@within Group
-	@return () -> Observer?
-]=]
-function Group.iterObservers(self: Types.InternalGroup): () -> Types.Observer?
-	local observersMap = State.groupToObservers[self.id]
-	local currentObserverId = nil
-	return function(): Types.Observer?
-		currentObserverId = next(observersMap, currentObserverId)
-		if currentObserverId then
-			return State.observerIdToObserverObj[currentObserverId]
-		end
-
-		return nil
 	end
 end
 

@@ -967,29 +967,6 @@ function Zone.getShape(self: Types.InternalZone): Types.ShapeType
 end
 
 --[=[ 
-	Returns a list of all Observers currently attached to this zone.
-	
-	@method getObservers
-	@within Zone
-	@return { Observer }
-]=]
-function Zone.getObservers(self: Types.InternalZone): { Types.Observer }
-	local attached = State.zoneAttachedObservers[self.id]
-	if not attached then
-		return {}
-	end
-
-	local result = {}
-	for _, id in attached do
-		local observer = State.observerIdToObserverObj[id]
-		if observer then
-			table.insert(result, observer)
-		end
-	end
-	return result
-end
-
---[=[ 
 	Checks if a point is inside this specific zone.
 
 	@method isPointInside
