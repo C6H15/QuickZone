@@ -20,15 +20,15 @@ Zones.__index = Zones
 	@param config { isDynamic: boolean?, metadata: any? }?
 	@return Zones
 ]=]
-function Zones.new(config: { isDynamic: boolean?, autoSyncToParts: boolean?, metadata: any? }?): Types.Zones
+function Zones.new(config: { isDynamic: boolean?, autoSync: boolean?, metadata: any? }?): Types.Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config then config.metadata else nil
-	local autoSyncToParts = if config and config.autoSyncToParts ~= nil then config.autoSyncToParts else false
+	local autoSync = if config and config.autoSync ~= nil then config.autoSync else false
 
 	local self: Types.InternalZones = setmetatable({
 		dynamic = isDynamic,
 		metadata = metadata,
-		autoSyncToParts = autoSyncToParts,
+		autoSync = autoSync,
 		zones = {} :: { [Types.Zone]: boolean },
 		observers = {} :: { [Types.Observer]: boolean },
 		onDestroyObserverCleanups = {} :: { [Types.Observer]: () -> () },
@@ -90,19 +90,18 @@ function Zones.detach(self: Types.InternalZones, observer: Types.Observer): Type
 end
 
 --[=[ 
-	Forces all dynamic underlying zones to recalculate their spatial geometry 
-	based on the current physical CFrame, Size and Shape of their attached BaseParts.
+	Forces all dynamic underlying zones to recalculate their spatial geometry.
 
-	@method syncToParts
+	@method sync
 	@within Zones
 	@return Zones
 ]=]
-function Zones.syncToParts(self: Types.InternalZones): Types.Zones
+function Zones.sync(self: Types.InternalZones): Types.Zones
 	if not self.dynamic then
 		return self
 	end
 	for zone, _ in self.zones do
-		zone:syncToPart()
+		zone:sync()
 	end
 	return self
 end
@@ -154,20 +153,20 @@ end
 	Enables or disables automatic polling and syncing to the tracked BaseParts for all underlying zones.
 	If any zones are currently static, they will automatically be set to dynamic.
 
-	@method setAutoSyncToParts
+	@method setAutoSync
 	@within Zones
-	@param autoSyncToParts boolean
+	@param autoSync boolean
 	@return Zones
 ]=]
-function Zones.setAutoSyncToParts(self: Types.InternalZones, autoSyncToParts: boolean): Types.Zones
-	if self.autoSyncToParts == autoSyncToParts then
+function Zones.setAutoSync(self: Types.InternalZones, autoSync: boolean): Types.Zones
+	if self.autoSync == autoSync then
 		return self
 	end
 
-	self.autoSyncToParts = autoSyncToParts
+	self.autoSync = autoSync
 
 	for zone, _ in self.zones do
-		zone:setAutoSyncToPart(autoSyncToParts)
+		zone:setAutoSync(autoSync)
 	end
 
 	return self
@@ -327,8 +326,8 @@ function Zones.add(self: Types.InternalZones, zone: Types.Zone)
 		zone:setDynamic(true)
 	end
 
-	if self.autoSyncToParts then
-		zone:setAutoSyncToPart(true)
+	if self.autoSync then
+		zone:setAutoSync(true)
 	end
 
 	self.zones[zone] = true

@@ -39,7 +39,7 @@ local function getShapeEnumValue(part: BasePart): number
 	return Enum.PartType.Block.Value
 end
 
-local function clearAutoSyncToPart(zone: Types.InternalZone)
+local function clearautoSync(zone: Types.InternalZone)
 	State.autoSyncZones[zone.id] = nil
 	if zone.syncConnections then
 		for _, conn in zone.syncConnections do
@@ -49,27 +49,29 @@ local function clearAutoSyncToPart(zone: Types.InternalZone)
 	end
 end
 
-local function setupAutoSyncToPart(zone: Types.InternalZone, part: BasePart)
+local function setupautoSync(zone: Types.InternalZone, reference: BasePart | Attachment | Bone)
 	State.autoSyncZones[zone.id] = zone
 
 	local connections = zone.syncConnections or {}
 
-	table.insert(
-		connections,
-		part:GetPropertyChangedSignal('Size'):Connect(function()
-			local newHalfSize = part.Size * 0.5
-			if dynamicHalfSizes[zone.id] ~= newHalfSize then
-				dynamicHalfSizes[zone.id] = newHalfSize
-				State.pendingDynamicRebuild = true
-			end
-		end)
-	)
-
-	if part:IsA('Part') then
+	if reference:IsA('BasePart') then
 		table.insert(
 			connections,
-			part:GetPropertyChangedSignal('Shape'):Connect(function()
-				local newShape = part.Shape.Value
+			reference:GetPropertyChangedSignal('Size'):Connect(function()
+				local newHalfSize = reference.Size * 0.5
+				if dynamicHalfSizes[zone.id] ~= newHalfSize then
+					dynamicHalfSizes[zone.id] = newHalfSize
+					State.pendingDynamicRebuild = true
+				end
+			end)
+		)
+	end
+
+	if reference:IsA('Part') then
+		table.insert(
+			connections,
+			reference:GetPropertyChangedSignal('Shape'):Connect(function()
+				local newShape = reference.Shape.Value
 				if dynamicTypes[zone.id] ~= newShape then
 					dynamicTypes[zone.id] = newShape
 					State.pendingDynamicRebuild = true
@@ -105,10 +107,10 @@ local function newZoneInternal(
 	cframe: CFrame,
 	size: Vector3,
 	shapeType: number,
-	part: BasePart?,
+	reference: (BasePart | Attachment | Bone)?,
 	isDynamic: boolean,
 	metadata: any?,
-	autoSyncToPart: boolean,
+	autoSync: boolean,
 	observers: { Types.Observer }?
 ): Types.Zone
 	local id = State.nextZoneId
@@ -129,15 +131,15 @@ local function newZoneInternal(
 
 	local self: Types.InternalZone = setmetatable({
 		id = id,
-		part = part,
+		reference = reference,
 		dynamic = isDynamic,
 		metadata = metadata,
-		autoSyncToPart = false,
+		autoSync = false,
 	}, Zone) :: any
 	State.zoneIdToZoneObj[id] = self
 
-	if autoSyncToPart then
-		self:setAutoSyncToPart(true)
+	if autoSync then
+		self:setAutoSync(true)
 	end
 
 	if observers then
@@ -174,17 +176,17 @@ end
 	:::
 
 	@tag Constructor
-	@param config { cframe: CFrame, size: Vector3, shape: Types.ShapeType?, part: BasePart?, isDynamic: boolean?, metadata: any?, observers: { Types.Observer }? }?
+	@param config { cframe: CFrame, size: Vector3, shape: Types.ShapeType?, reference: (BasePart | Attachment | Bone)?, isDynamic: boolean?, metadata: any?, observers: { Types.Observer }? }?
 	@return Zone
 ]=]
 function Zone.new(config: {
 	cframe: CFrame,
 	size: Vector3,
 	shape: Types.ShapeType?,
-	part: BasePart?,
+	reference: (BasePart | Attachment | Bone)?,
 	isDynamic: boolean?,
 	metadata: any?,
-	autoSyncToPart: boolean?,
+	autoSync: boolean?,
 	observers: { Types.Observer }?,
 }): Types.Zone
 	local shapeType = Enum.PartType.Block.Value
@@ -202,10 +204,10 @@ function Zone.new(config: {
 		config.cframe,
 		config.size,
 		shapeType,
-		config.part,
+		config.reference,
 		config.isDynamic or false,
 		config.metadata,
-		config.autoSyncToPart or false,
+		config.autoSync or false,
 		config.observers
 	)
 end
@@ -239,7 +241,7 @@ function Zone.fromPart(
 	config: {
 		isDynamic: boolean?,
 		metadata: any?,
-		autoSyncToPart: boolean?,
+		autoSync: boolean?,
 		observers: { Types.Observer }?,
 	}?
 ): Types.Zone
@@ -254,10 +256,10 @@ function Zone.fromPart(
 
 	local isDynamic = config and config.isDynamic or false
 	local metadata = config and config.metadata
-	local autoSyncToPart = config and config.autoSyncToPart or false
+	local autoSync = config and config.autoSync or false
 	local observers = config and config.observers
 
-	return newZoneInternal(part.CFrame, part.Size, shapeId, part, isDynamic, metadata, autoSyncToPart, observers)
+	return newZoneInternal(part.CFrame, part.Size, shapeId, part, isDynamic, metadata, autoSync, observers)
 end
 
 --[=[
@@ -274,18 +276,18 @@ function Zone.fromParts(
 	config: {
 		isDynamic: boolean?,
 		metadata: any?,
-		autoSyncToPart: boolean?,
+		autoSync: boolean?,
 		observers: { Types.Observer }?,
 	}?
 ): Types.Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
-	local autoSyncToPart = if config and config.autoSyncToPart ~= nil then config.autoSyncToPart else false
+	local autoSync = if config and config.autoSync ~= nil then config.autoSync else false
 
 	local zones = Zones.new({
 		isDynamic = isDynamic,
 		metadata = metadata,
-		autoSyncToPart = autoSyncToPart,
+		autoSync = autoSync,
 	}) :: Types.InternalZones
 
 	if config and config.observers then
@@ -299,7 +301,7 @@ function Zone.fromParts(
 			local newZone = Zone.fromPart(part, {
 				isDynamic = isDynamic,
 				metadata = zones.metadata,
-				autoSyncToPart = autoSyncToPart,
+				autoSync = autoSync,
 			})
 			zones:add(newZone)
 		end
@@ -323,18 +325,18 @@ function Zone.fromChildren(
 	config: {
 		isDynamic: boolean?,
 		metadata: any?,
-		autoSyncToPart: boolean?,
+		autoSync: boolean?,
 		observers: { Types.Observer }?,
 	}?
 ): Types.Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
-	local autoSyncToPart = if config and config.autoSyncToPart ~= nil then config.autoSyncToPart else false
+	local autoSync = if config and config.autoSync ~= nil then config.autoSync else false
 
 	local zones = Zones.new({
 		isDynamic = isDynamic,
 		metadata = metadata,
-		autoSyncToPart = autoSyncToPart,
+		autoSync = autoSync,
 	}) :: Types.InternalZones
 
 	if config and config.observers then
@@ -403,18 +405,18 @@ function Zone.fromDescendants(
 	config: {
 		isDynamic: boolean?,
 		metadata: any?,
-		autoSyncToPart: boolean?,
+		autoSync: boolean?,
 		observers: { Types.Observer }?,
 	}?
 ): Types.Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
-	local autoSyncToPart = if config and config.autoSyncToPart ~= nil then config.autoSyncToPart else false
+	local autoSync = if config and config.autoSync ~= nil then config.autoSync else false
 
 	local zones = Zones.new({
 		isDynamic = isDynamic,
 		metadata = metadata,
-		autoSyncToPart = autoSyncToPart,
+		autoSync = autoSync,
 	}) :: Types.InternalZones
 
 	if config and config.observers then
@@ -476,19 +478,19 @@ function Zone.fromTag(
 	config: {
 		isDynamic: boolean?,
 		metadata: any?,
-		autoSyncToPart: boolean?,
+		autoSync: boolean?,
 		observers: { Types.Observer }?,
 	}?
 ): Types.Zones
 	-- Create Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
-	local autoSyncToPart = if config and config.autoSyncToPart ~= nil then config.autoSyncToPart else false
+	local autoSync = if config and config.autoSync ~= nil then config.autoSync else false
 
 	local zones = Zones.new({
 		isDynamic = isDynamic,
 		metadata = metadata,
-		autoSyncToPart = autoSyncToPart,
+		autoSync = autoSync,
 	}) :: Types.InternalZones
 
 	if config and config.observers then
@@ -621,51 +623,50 @@ end
 	Enables or disables automatic polling and syncing to the tracked BasePart.
 	If the zone is currently static, it will automatically be set to dynamic.
 
-	@method setAutoSyncToPart
+	@method setAutoSync
 	@within Zone
-	@param autoSyncToPart boolean
+	@param autoSync boolean
 	@return Zone
 ]=]
-function Zone.setAutoSyncToPart(self: Types.InternalZone, autoSyncToPart: boolean): Types.Zone
-	if self.autoSyncToPart == autoSyncToPart then
+function Zone.setAutoSync(self: Types.InternalZone, autoSync: boolean): Types.Zone
+	if self.autoSync == autoSync then
 		return self
 	end
 
-	self.autoSyncToPart = autoSyncToPart
-
-	if autoSyncToPart then
+	self.autoSync = autoSync
+	if autoSync then
 		if not self.dynamic then
 			self:setDynamic(true)
 		end
 
-		if self.part then
-			setupAutoSyncToPart(self, self.part)
+		if self.reference then
+			setupautoSync(self, self.reference)
 		else
-			warn('[QuickZone] Cannot autoSyncToPart a Zone without a tracked BasePart.')
+			warn('[QuickZone] Cannot autoSync a Zone without a tracked reference.')
 		end
 	else
-		clearAutoSyncToPart(self)
+		clearautoSync(self)
 	end
 
 	return self
 end
 
 --[=[ 
-	Updates the tracked BasePart for this zone. If `autoSyncToPart` is enabled, 
-	the zone will immediately start syncing to the new part.
+	Updates the tracked reference for this zone. If `autoSync` is enabled, 
+	the zone will immediately start syncing to the new reference.
 
-	@method setPart
+	@method setReference
 	@within Zone
-	@param part BasePart?
+	@param reference (BasePart | Attachment | Bone)?
 	@return Zone
 ]=]
-function Zone.setPart(self: Types.InternalZone, part: BasePart?): Types.Zone
-	self.part = part
+function Zone.setReference(self: Types.InternalZone, reference: (BasePart | Attachment | Bone)?): Types.Zone
+	self.reference = reference
 
-	if self.autoSyncToPart then
-		clearAutoSyncToPart(self)
-		if part then
-			setupAutoSyncToPart(self, part)
+	if self.autoSync then
+		clearautoSync(self)
+		if reference then
+			setupautoSync(self, reference)
 		end
 	end
 
@@ -673,7 +674,9 @@ function Zone.setPart(self: Types.InternalZone, part: BasePart?): Types.Zone
 end
 
 --[=[ 
-	Update the zone to the part's current CFrame, Size and Shape.
+	Update the zone to the reference. For a part-based zone, this will sync the zone's 
+	CFrame, Size and Shape to match the reference's. For attachment/bone-based zones, 
+	only the WorldCFrame is synced.
 
 	:::info Rebuild
 	This method flags the zone for an update. The actual tree rebuild is batched and occurs once per frame.
@@ -681,40 +684,90 @@ end
 	* Dynamic Zones: Cheap. Forces a rebuild of the smaller dynamic tree.
 	:::
 
-	@method syncToPart
+	@method sync
 	@within Zone
 	@return Zone
 ]=]
-function Zone.syncToPart(self: Types.InternalZone): Types.Zone
-	local part = self.part
-	if not part then
-		warn('[QuickZone] Zone:syncToPart failed. No reference part found.')
+function Zone.sync(self: Types.InternalZone): Types.Zone
+	local reference = self.reference
+	if not reference then
+		warn('[QuickZone] Zone:sync failed. No reference found.')
 		return self
 	end
 
 	local id = self.id
-	local newCFrame = part.CFrame
-	local halfSize = part.Size * 0.5
-	local shapeType = getShapeEnumValue(part)
 
-	if self.dynamic then
-		if dynamicCFrames[id] == newCFrame and dynamicHalfSizes[id] == halfSize and dynamicTypes[id] == shapeType then
-			return self
+	if reference:IsA('BasePart') then
+		local newCFrame = reference.CFrame
+		local newHalfSize = reference.Size * 0.5
+		local newShape = getShapeEnumValue(reference)
+
+		if self.dynamic then
+			local needsUpdate = false
+
+			if dynamicCFrames[id] ~= newCFrame then
+				dynamicCFrames[id] = newCFrame
+				needsUpdate = true
+			end
+
+			if dynamicHalfSizes[id] ~= newHalfSize then
+				dynamicHalfSizes[id] = newHalfSize
+				needsUpdate = true
+			end
+
+			if dynamicTypes[id] ~= newShape then
+				dynamicTypes[id] = newShape
+				needsUpdate = true
+			end
+
+			if needsUpdate then
+				State.pendingDynamicRebuild = true
+			end
+		else
+			local needsUpdate = false
+
+			if staticCFrames[id] ~= newCFrame then
+				staticCFrames[id] = newCFrame
+				needsUpdate = true
+			end
+
+			if staticHalfSizes[id] ~= newHalfSize then
+				staticHalfSizes[id] = newHalfSize
+				needsUpdate = true
+			end
+
+			if staticTypes[id] ~= newShape then
+				staticTypes[id] = newShape
+				needsUpdate = true
+			end
+
+			if needsUpdate then
+				State.pendingStaticRebuild = true
+			end
 		end
 
-		dynamicCFrames[id] = newCFrame
-		dynamicHalfSizes[id] = halfSize
-		dynamicTypes[id] = shapeType
-		State.pendingDynamicRebuild = true
-	else
-		if staticCFrames[id] == newCFrame and staticHalfSizes[id] == halfSize and staticTypes[id] == shapeType then
-			return self
+		return self
+	end
+
+	if reference:IsA('Attachment') or reference:IsA('Bone') then
+		local newCFrame = reference.WorldCFrame
+		if self.dynamic then
+			if dynamicCFrames[id] == newCFrame then
+				return self
+			end
+
+			dynamicCFrames[id] = newCFrame
+			State.pendingDynamicRebuild = true
+		else
+			if staticCFrames[id] == newCFrame then
+				return self
+			end
+
+			staticCFrames[id] = newCFrame
+			State.pendingStaticRebuild = true
 		end
 
-		staticCFrames[id] = newCFrame
-		staticHalfSizes[id] = halfSize
-		staticTypes[id] = shapeType
-		State.pendingStaticRebuild = true
+		return self
 	end
 
 	return self
@@ -750,8 +803,8 @@ function Zone.setDynamic(self: Types.InternalZone, isDynamic: boolean): Types.Zo
 		staticHalfSizes[id] = nil
 		staticTypes[id] = nil
 	else
-		if self.autoSyncToPart then
-			self:setAutoSyncToPart(false)
+		if self.autoSync then
+			self:setAutoSync(false)
 		end
 
 		staticCFrames[id] = dynamicCFrames[id]
@@ -897,15 +950,15 @@ function Zone.getId(self: Types.InternalZone): number
 	return self.id
 end
 
---[=[ 
-	Returns the BasePart associated with this zone, if any.
+--[=[
+	Returns the reference associated with this zone, if any.
 
-	@method getPart
+	@method getReference
 	@within Zone
-	@return BasePart?
+	@return (BasePart | Attachment | Bone)?
 ]=]
-function Zone.getPart(self: Types.InternalZone): BasePart?
-	return self.part
+function Zone.getReference(self: Types.InternalZone): (BasePart | Attachment | Bone)?
+	return self.reference
 end
 
 --[=[
@@ -1043,7 +1096,7 @@ function Zone.destroy(self: Types.InternalZone): ()
 		table.clear(self.onDestroyCallbacks)
 	end
 
-	clearAutoSyncToPart(self)
+	clearautoSync(self)
 
 	-- Force flush so the zone object will not be nil when spatial query is done in the Scheduler
 	local id = self.id

@@ -47,8 +47,8 @@ local nextBucketIndex = 1 -- Round-robin pointer
 local bucketLastProcessedIndex = {} :: { [number]: number }
 
 local autoUpdateConnection: RBXScriptConnection?
-local autoSyncToPartRate = Config.Scheduler.autoSyncToPartRate
-local autoSyncToPartTimer = 0
+local autoSyncRate = Config.Scheduler.autoSyncRate
+local autoSyncTimer = 0
 
 local STRAT_POS = Config.Strategy.POS
 local STRAT_PRIM = Config.Strategy.PRIM
@@ -56,45 +56,32 @@ local STRAT_WORLD = Config.Strategy.WORLD
 local STRAT_CFRAME = Config.Strategy.CFRAME
 
 local BUDGET_CHECK = 32
-local AUTO_SYNC_TO_PART_PRECISION = 0.1 ^ 2
 
-local function processAutoSyncToPart(dt: number)
-	local shouldSync = false
-
-	if autoSyncToPartRate > 0 then
-		local syncInterval = 1 / autoSyncToPartRate
-		autoSyncToPartTimer += dt
-		if autoSyncToPartTimer >= syncInterval then
-			autoSyncToPartTimer = 0
-			shouldSync = true
+local function processAutoSync(dt: number)
+	if autoSyncRate > 0 then
+		local syncInterval = 1 / autoSyncRate
+		autoSyncTimer += dt
+		if autoSyncTimer < syncInterval then
+			return
 		end
-	else
-		shouldSync = true
-	end
-
-	if not shouldSync then
-		return
+		autoSyncTimer = 0
 	end
 
 	for id, zone in autoSyncZones do
-		local part = zone.part
-		if not part then
+		local reference = zone.reference
+		if not reference then
 			continue
 		end
 
-		local newCF = part.CFrame
+		local newCF = reference:IsA('Attachment') and reference.WorldCFrame or reference.CFrame
 		local oldCF = dynamicCFrames[id]
 
 		if oldCF == newCF then
 			continue
 		end
 
-		local p1, p2 = oldCF.Position, newCF.Position
-		local dx, dy, dz = p2.X - p1.X, p2.Y - p1.Y, p2.Z - p1.Z
-		if (dx * dx + dy * dy + dz * dz) > AUTO_SYNC_TO_PART_PRECISION or oldCF.Rotation ~= newCF.Rotation then
-			dynamicCFrames[id] = newCF
-			State.pendingDynamicRebuild = true
-		end
+		dynamicCFrames[id] = newCF
+		State.pendingDynamicRebuild = true
 	end
 end
 
@@ -162,7 +149,7 @@ local Scheduler = {}
 function Scheduler.update(dt: number)
 	local start = os.clock()
 
-	processAutoSyncToPart(dt)
+	processAutoSync(dt)
 	Scheduler.rebuildTrees()
 
 	if (os.clock() - start) > frameBudget then
@@ -390,11 +377,11 @@ function Scheduler.rebuildTrees()
 	end
 end
 
-function Scheduler.setAutoSyncToPartRate(hz: number)
+function Scheduler.setAutoSyncRate(hz: number)
 	if hz <= 0 then
-		autoSyncToPartRate = 0
+		autoSyncRate = 0
 	else
-		autoSyncToPartRate = hz
+		autoSyncRate = hz
 	end
 end
 

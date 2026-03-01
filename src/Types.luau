@@ -73,7 +73,7 @@ export type ZoneClass = {
 			cframe: CFrame,
 			size: Vector3,
 			shape: ShapeType?,
-			part: BasePart?,
+			reference: (BasePart | Attachment)?,
 			isDynamic: boolean?,
 			metadata: any?,
 			observers: { Observer }?,
@@ -99,9 +99,9 @@ export type Zone = {
 	attach: (self: Zone, observer: Observer) -> Zone,
 	detach: (self: Zone, observer: Observer) -> Zone,
 
-	syncToPart: (self: Zone) -> Zone,
-	setPart: (self: Zone, part: BasePart?) -> Zone,
-	setAutoSyncToPart: (self: Zone, autoSyncToPart: boolean) -> Zone,
+	sync: (self: Zone) -> Zone,
+	setReference: (self: Zone, reference: (BasePart | Attachment)?) -> Zone,
+	setAutoSync: (self: Zone, autoSync: boolean) -> Zone,
 	setDynamic: (self: Zone, dynamic: boolean) -> Zone,
 	setCFrame: (self: Zone, cf: CFrame) -> Zone,
 	setPosition: (self: Zone, pos: Vector3) -> Zone,
@@ -126,10 +126,10 @@ export type Zone = {
 
 export type InternalZone = Zone & {
 	id: number,
-	part: BasePart?,
+	reference: (BasePart | Attachment)?,
 	dynamic: boolean,
 	metadata: any?,
-	autoSyncToPart: boolean,
+	autoSync: boolean,
 	syncConnections: { RBXScriptConnection }?,
 	onDestroyCallbacks: { () -> () }?,
 }
@@ -138,8 +138,8 @@ export type Zones = {
 	attach: (self: Zones, observer: Observer) -> Zones,
 	detach: (self: Zones, observer: Observer) -> Zones,
 
-	syncToParts: (self: Zones) -> Zones,
-	setAutoSyncToParts: (self: Zones, autoSyncToParts: boolean) -> Zones,
+	sync: (self: Zones) -> Zones,
+	setAutoSync: (self: Zones, autoSync: boolean) -> Zones,
 	setDynamic: (self: Zones, dynamic: boolean) -> Zones,
 	getZones: (self: Zones) -> { Zone },
 	getMetadata: (self: Zones) -> any?,
@@ -154,7 +154,7 @@ export type Zones = {
 }
 
 export type InternalZones = Zones & {
-	autoSyncToParts: boolean?,
+	autoSync: boolean?,
 	dynamic: boolean,
 	metadata: any?,
 	zones: { [Zone]: boolean },

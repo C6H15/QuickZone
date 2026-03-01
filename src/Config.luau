@@ -20,9 +20,9 @@ Config.Scheduler = {
 	-- 0.001 = 1ms (approx 6% of a frame at 60 FPS)
 	frameBudget = 1 / 1000,
 
-	-- How often (in Hz) to automatically sync zone positions to their attached parts.
+	-- How often (in Hz) to automatically sync zone positions to their references.
 	-- Only applies to zones with autoSync enabled.
-	autoSyncToPartRate = 0,
+	autoSyncRate = 0,
 }
 
 Config.Observer = {
