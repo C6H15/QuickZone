@@ -26,6 +26,8 @@ local staticTypes = State.staticTypes
 local dynamicCFrames = State.dynamicCFrames
 local dynamicHalfSizes = State.dynamicHalfSizes
 local dynamicTypes = State.dynamicTypes
+local dynamicTree = State.dynamicTree
+local staticTree = State.staticTree
 
 local debugConnection: RBXScriptConnection?
 local debugFolder: Folder?
@@ -306,7 +308,7 @@ function QuickZone:getZonesAtPoint(position: Vector3): { Zone }
 	local results = {}
 	local count = 0
 
-	queryPoint(State.dynamicTree, position, function(zoneId)
+	queryPoint(dynamicTree, position, function(zoneId)
 		if isPointInShape(position, dynamicCFrames[zoneId], dynamicHalfSizes[zoneId], dynamicTypes[zoneId]) then
 			local zone = zoneIdToZoneObj[zoneId]
 			if zone then
@@ -316,7 +318,7 @@ function QuickZone:getZonesAtPoint(position: Vector3): { Zone }
 		end
 	end)
 
-	queryPoint(State.staticTree, position, function(zoneId)
+	queryPoint(staticTree, position, function(zoneId)
 		if isPointInShape(position, staticCFrames[zoneId], staticHalfSizes[zoneId], staticTypes[zoneId]) then
 			local zone = zoneIdToZoneObj[zoneId]
 			if zone then
@@ -621,9 +623,6 @@ end
 	@return () -> Zone?
 ]=]
 function QuickZone:iterZonesAtPoint(point: Vector3): () -> Zone?
-	local dynamicTree = State.dynamicTree
-	local staticTree = State.staticTree
-
 	local dynamicNodes = dynamicTree.nodes
 	local dynamicCount = dynamicTree.count or 0
 

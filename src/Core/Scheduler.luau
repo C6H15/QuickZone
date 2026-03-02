@@ -41,6 +41,9 @@ local groupToObservers = State.groupToObservers
 local dirtyProfiles = State.dirtyProfiles
 local dirtyTopology = State.dirtyTopology
 
+local staticTree = State.staticTree
+local dynamicTree = State.dynamicTree
+
 local ctx_pos: Vector3
 local ctx_cCount: number = 0
 local ctx_highestWin: number
@@ -308,9 +311,6 @@ function Scheduler.update(dt: number)
 		return
 	end
 
-	local staticTree = State.staticTree
-	local dynamicTree = State.dynamicTree
-
 	local numBuckets = #bucketList
 	if numBuckets == 0 then
 		return
@@ -536,13 +536,13 @@ end
 
 function Scheduler.rebuildTrees()
 	if State.pendingDynamicRebuild then
-		State.dynamicTree = LinearBVH.build(dynamicCFrames, dynamicHalfSizes)
+		LinearBVH.build(dynamicTree, dynamicCFrames, dynamicHalfSizes)
 		State.pendingDynamicRebuild = false
 		State.dynamicVersion += 1
 	end
 
 	if State.pendingStaticRebuild then
-		State.staticTree = LinearBVH.build(staticCFrames, staticHalfSizes)
+		LinearBVH.build(staticTree, staticCFrames, staticHalfSizes)
 		State.pendingStaticRebuild = false
 		State.staticVersion += 1
 	end

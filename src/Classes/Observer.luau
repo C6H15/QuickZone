@@ -19,6 +19,8 @@ local staticTypes = State.staticTypes
 local dynamicCFrames = State.dynamicCFrames
 local dynamicHalfSizes = State.dynamicHalfSizes
 local dynamicTypes = State.dynamicTypes
+local dynamicTree = State.dynamicTree
+local staticTree = State.staticTree
 
 local IS_CLIENT = RunService:IsClient()
 
@@ -226,12 +228,12 @@ function Observer.observe(self: Types.InternalObserver, callback: (Types.Entity,
 
 	local cleanupEnter = self:onEnter(function(entity, zone)
 		nextId += 1
-		local myId = nextId
-		activeIds[entity] = myId
+		local observerId = nextId
+		activeIds[entity] = observerId
 
 		local cleanup = callback(entity, zone)
 
-		if activeIds[entity] ~= myId then
+		if activeIds[entity] ~= observerId then
 			if type(cleanup) == 'function' then
 				cleanup()
 			end
@@ -336,12 +338,12 @@ function Observer.observePlayer(self: Types.InternalObserver, callback: (Player,
 
 	local cleanupEnter = self:onPlayerEnter(function(player, zone)
 		nextId += 1
-		local myId = nextId
-		activeIds[player] = myId
+		local observerId = nextId
+		activeIds[player] = observerId
 
 		local cleanup = callback(player, zone)
 
-		if activeIds[player] ~= myId then
+		if activeIds[player] ~= observerId then
 			if type(cleanup) == 'function' then
 				cleanup()
 			end
@@ -451,11 +453,11 @@ function Observer.observeLocalPlayer(self: Types.InternalObserver, callback: (Ty
 
 	local cleanupEnter = self:onLocalPlayerEnter(function(zone)
 		currentId += 1
-		local myId = currentId
+		local observerId = currentId
 
 		local cleanup = callback(zone)
 
-		if currentId ~= myId then
+		if currentId ~= observerId then
 			if type(cleanup) == 'function' then
 				cleanup()
 			end
@@ -927,70 +929,55 @@ end
 ]=]
 function Observer.isPointInside(self: Types.InternalObserver, position: Vector3): boolean
 	local px, py, pz = position.X, position.Y, position.Z
-	local myId = self.id
+	local observerId = self.id
 
-	local dynamicTree = State.dynamicTree
-	if dynamicTree then
-		local nodes = dynamicTree.nodes
-		local index = 1
-		local count = dynamicTree.count
+	local nodes = dynamicTree.nodes
+	local index = 1
+	local count = dynamicTree.count
+	while index <= count do
+		local node = nodes[index]
+		local min, max = node.min, node.max
 
-		while index <= count do
-			local node = nodes[index]
-			local min, max = node.min, node.max
+		if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
+			local hitId = node.id
+			index += 1
 
-			if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
-				local hitId = node.id
-				index += 1
-
-				if hitId > 0 then
-					local observers = zoneAttachedObservers[hitId]
-					if observers and table.find(observers, myId) then
-						if
-							isPointInShape(
-								position,
-								dynamicCFrames[hitId],
-								dynamicHalfSizes[hitId],
-								dynamicTypes[hitId]
-							)
-						then
-							return true
-						end
+			if hitId > 0 then
+				local observers = zoneAttachedObservers[hitId]
+				if observers and table.find(observers, observerId) then
+					if
+						isPointInShape(position, dynamicCFrames[hitId], dynamicHalfSizes[hitId], dynamicTypes[hitId])
+					then
+						return true
 					end
 				end
-			else
-				index = node.skipIndex
 			end
+		else
+			index = node.skipIndex
 		end
 	end
 
-	local staticTree = State.staticTree
-	if staticTree then
-		local nodes = staticTree.nodes
-		local index = 1
-		local count = staticTree.count
+	nodes = staticTree.nodes
+	index = 1
+	count = staticTree.count
+	while index <= count do
+		local node = nodes[index]
+		local min, max = node.min, node.max
 
-		while index <= count do
-			local node = nodes[index]
-			local min, max = node.min, node.max
+		if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
+			local hitId = node.id
+			index += 1
 
-			if px >= min.X and px <= max.X and py >= min.Y and py <= max.Y and pz >= min.Z and pz <= max.Z then
-				local hitId = node.id
-				index += 1
-
-				if hitId > 0 then
-					local observers = zoneAttachedObservers[hitId]
-					if observers and table.find(observers, myId) then
-						if
-							isPointInShape(position, staticCFrames[hitId], staticHalfSizes[hitId], staticTypes[hitId])
-						then
-							return true
-						end
+			if hitId > 0 then
+				local observers = zoneAttachedObservers[hitId]
+				if observers and table.find(observers, observerId) then
+					if isPointInShape(position, staticCFrames[hitId], staticHalfSizes[hitId], staticTypes[hitId]) then
+						return true
 					end
 				end
-			else
-				index = node.skipIndex
 			end
+		else
+			index = node.skipIndex
 		end
 	end
 
@@ -1226,7 +1213,7 @@ end
 function Observer.iterZones(self: Types.InternalObserver): () -> Types.Zone?
 	local zoneId = nil
 	local attachedList = nil
-	local myId = self.id
+	local observerId = self.id
 
 	return function(): Types.Zone?
 		while true do
@@ -1236,7 +1223,7 @@ function Observer.iterZones(self: Types.InternalObserver): () -> Types.Zone?
 				return nil
 			end
 
-			if table.find(attachedList, myId) then
+			if table.find(attachedList, observerId) then
 				local zone = State.zoneIdToZoneObj[zoneId]
 				if zone then
 					return zone
@@ -1256,7 +1243,7 @@ end
 function Observer.iterGroups(self: Types.InternalObserver): () -> Types.Group?
 	local groupId = nil
 	local observersMap = nil
-	local myId = self.id
+	local observerId = self.id
 
 	return function(): Types.Group?
 		while true do
@@ -1266,7 +1253,7 @@ function Observer.iterGroups(self: Types.InternalObserver): () -> Types.Group?
 				return nil
 			end
 
-			if observersMap[myId] then
+			if observersMap[observerId] then
 				local group = State.groups[groupId]
 				if group then
 					return group

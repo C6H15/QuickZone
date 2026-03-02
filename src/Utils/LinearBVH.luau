@@ -20,10 +20,10 @@ type ListEntity = {
 local LinearBVH = {}
 LinearBVH.__index = LinearBVH
 
-local listCache = table.create(2000)
-local objMinCache = table.create(2000)
-local objMaxCache = table.create(2000)
-local treePools = {} :: { [any]: Types.Tree }
+local listCache = {} :: { ListEntity }
+local entryPool = {} :: { ListEntity }
+local objMinCache = {} :: { [number]: Vector3 }
+local objMaxCache = {} :: { [number]: Vector3 }
 
 local function getSplitPos(list: { ListEntity }, beginIndex: number, endIndex: number): number
 	if endIndex == beginIndex + 1 then
@@ -96,19 +96,7 @@ local function buildFlatTree(
 	end
 end
 
-function LinearBVH.build(cframes: { [number]: CFrame }, halfSizes: { [number]: Vector3 }): Types.Tree
-	-- Pool per unique list reference (static and dynamic) to allow reuse.
-	-- We don't need to clear the cache, since we track count separately.
-	local tree = treePools[cframes]
-	if not tree then
-		tree = {
-			nodes = table.create(4000),
-			count = 0,
-		}
-		treePools[cframes] = tree
-	end
-	tree.count = 0
-
+function LinearBVH.build(tree: Types.Tree, cframes: { [number]: CFrame }, halfSizes: { [number]: Vector3 }): ()
 	table.clear(objMinCache)
 	table.clear(objMaxCache)
 
@@ -130,17 +118,35 @@ function LinearBVH.build(cframes: { [number]: CFrame }, halfSizes: { [number]: V
 
 		count += 1
 
-		local cachedEntry = listCache[count]
-		if cachedEntry then
-			cachedEntry.id = id
-			cachedEntry.mortonCode = 0
-		else
-			listCache[count] = { id = id, mortonCode = 0 }
+		local entry = listCache[count]
+		if not entry then
+			local poolSize = #entryPool
+			if poolSize > 0 then
+				entry = entryPool[poolSize]
+				entryPool[poolSize] = nil
+			else
+				entry = { id = 0, mortonCode = 0 }
+			end
+			listCache[count] = entry
 		end
+
+		entry.id = id
 	end
 
 	if count == 0 then
-		return { nodes = {}, count = 0 }
+		tree.count = 0
+		return
+	end
+
+	-- Push unused entries from the tail into the pool
+	local cacheSize = #listCache
+	if cacheSize > count then
+		local poolSize = #entryPool
+		for i = count + 1, cacheSize do
+			poolSize += 1
+			entryPool[poolSize] = listCache[i]
+			listCache[i] = nil
+		end
 	end
 
 	-- Add padding to avoid edge cases with flat scenes
@@ -154,11 +160,6 @@ function LinearBVH.build(cframes: { [number]: CFrame }, halfSizes: { [number]: V
 		entry.mortonCode = positionToMortonCode(pos, sceneMin, scaleX, scaleY, scaleZ)
 	end
 
-	-- Remove unused cached entries at tail
-	for i = count + 1, #listCache do
-		listCache[i] = nil
-	end
-
 	table.sort(listCache, function(a, b)
 		return a.mortonCode < b.mortonCode
 	end)
@@ -166,8 +167,6 @@ function LinearBVH.build(cframes: { [number]: CFrame }, halfSizes: { [number]: V
 	local nextAvailableIndex = buildFlatTree(listCache, objMinCache, objMaxCache, 1, count, tree, 1)
 
 	tree.count = nextAvailableIndex - 1
-
-	return tree
 end
 
 function LinearBVH.queryPoint(tree: Types.Tree, point: Vector3, callback: (id: number) -> ())
