@@ -121,6 +121,7 @@ local Scheduler = {}
 function Scheduler.update(dt: number)
 	local start = os.clock()
 
+	-- Auto-sync zone positions if enabled
 	if autoSyncRate > 0 then
 		local syncInterval = 1 / autoSyncRate
 		autoSyncTimer += dt
@@ -171,7 +172,9 @@ function Scheduler.update(dt: number)
 		nextBucketIndex = 1
 	end
 
-	local spatialVersion = State.spatialVersion
+	local dynamicVersion = State.dynamicVersion
+	local staticVersion = State.staticVersion
+	local logicVersion = State.logicVersion
 
 	-- Round-robin scheduling to prevent starvation
 	for _ = 1, numBuckets do
@@ -219,8 +222,13 @@ function Scheduler.update(dt: number)
 				pos = (entity :: any):GetPivot().Position
 			end
 
-			-- Threshold
-			local shouldCheck = data.lastSpatialVersion ~= spatialVersion
+			-- TODO add tree skipping heuristic
+			local needsStatic = true -- data.needsStatic
+			local needsDynamic = true -- data.needsDynamic
+
+			local shouldCheck = (data.logicVersion ~= logicVersion)
+				or (needsDynamic and data.dynamicVersion ~= dynamicVersion)
+				or (needsStatic and data.staticVersion ~= staticVersion)
 
 			if not shouldCheck then
 				local lp = data.lastPosition
@@ -232,7 +240,9 @@ function Scheduler.update(dt: number)
 
 			if shouldCheck then
 				data.lastPosition = pos
-				data.lastSpatialVersion = spatialVersion
+				data.dynamicVersion = dynamicVersion
+				data.logicVersion = logicVersion
+				data.staticVersion = staticVersion
 
 				ctx_linkedObservers = entityToObservers[entity]
 				ctx_currentMemberships = data.activeObserverMemberships
@@ -241,8 +251,13 @@ function Scheduler.update(dt: number)
 				ctx_cCount = 0
 				ctx_highestWin = -math.huge
 
-				queryPoint(dynamicTree, pos, queryCallbackDynamic)
-				queryPoint(staticTree, pos, queryCallbackStatic)
+				if needsDynamic then
+					queryPoint(dynamicTree, pos, queryCallbackDynamic)
+				end
+
+				if needsStatic then
+					queryPoint(staticTree, pos, queryCallbackStatic)
+				end
 
 				local current = data.activeObserverMemberships
 
@@ -273,10 +288,6 @@ function Scheduler.update(dt: number)
 					local observerId = ctx_candidateList[i]
 					local pri = ctx_candidatePriority[observerId]
 					local zoneIdx = ctx_candidateIndex[observerId]
-
-					ctx_candidatePriority[observerId] = nil
-					ctx_candidateIndex[observerId] = nil
-					ctx_candidateList[i] = nil
 
 					if pri < ctx_highestWin then
 						continue
@@ -320,6 +331,10 @@ function Scheduler.update(dt: number)
 						end
 					end
 				end
+
+				table.clear(ctx_candidatePriority)
+				table.clear(ctx_candidateIndex)
+				table.clear(ctx_candidateList)
 			end
 
 			idx += 1
@@ -377,13 +392,13 @@ function Scheduler.rebuildTrees()
 	if State.pendingDynamicRebuild then
 		State.dynamicTree = LinearBVH.build(State.dynamicCFrames, State.dynamicHalfSizes)
 		State.pendingDynamicRebuild = false
-		State.spatialVersion += 1
+		State.dynamicVersion += 1
 	end
 
 	if State.pendingStaticRebuild then
 		State.staticTree = LinearBVH.build(State.staticCFrames, State.staticHalfSizes)
 		State.pendingStaticRebuild = false
-		State.spatialVersion += 1
+		State.staticVersion += 1
 	end
 end
 

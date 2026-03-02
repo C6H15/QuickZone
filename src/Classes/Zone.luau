@@ -587,7 +587,12 @@ function Zone.attach(self: Types.InternalZone, observer: Types.InternalObserver)
 		table.insert(attached, observer.id)
 	end
 
-	State.spatialVersion += 1
+	if self.dynamic then
+		State.dynamicVersion += 1
+	else
+		State.staticVersion += 1
+	end
+
 	return self
 end
 
@@ -606,15 +611,23 @@ function Zone.detach(self: Types.InternalZone, observer: Types.InternalObserver)
 	end
 
 	local idx = table.find(attached, observer.id)
-	while idx do
-		table.remove(attached, idx)
-		idx = table.find(attached, observer.id)
+	if idx then
+		local lastIdx = #attached
+		if idx ~= lastIdx then
+			attached[idx] = attached[lastIdx]
+		end
+		attached[lastIdx] = nil
 	end
 
 	if #attached == 0 then
 		State.zoneAttachedObservers[self.id] = nil
 	end
-	State.spatialVersion += 1
+
+	if self.dynamic then
+		State.dynamicVersion += 1
+	else
+		State.staticVersion += 1
+	end
 
 	return self
 end
@@ -912,7 +925,12 @@ function Zone.setShape(self: Types.InternalZone, shape: Types.ShapeType): Types.
 		staticTypes[self.id] = shapeType
 	end
 
-	State.spatialVersion += 1
+	if self.dynamic then
+		State.dynamicVersion += 1
+	else
+		State.staticVersion += 1
+	end
+
 	return self
 end
 

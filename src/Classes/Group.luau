@@ -389,11 +389,13 @@ function Group.add(self: Types.InternalGroup, entity: Types.Entity): Types.Group
 		State.entityData[entity] = {
 			strategy = strat,
 			lastPosition = Vector3.zero,
-			lastSpatialVersion = 0,
 			activeObserverMemberships = {},
 			precisionSq = DEFAULT_PRECISION_SQ, -- Updated in updateProfile
 			updateRate = -1, -- Updated in updateProfile
 			bucketIndex = 0, -- Updated in updateProfile
+			dynamicVersion = 0,
+			staticVersion = 0,
+			logicVersion = 0,
 		}
 	end
 

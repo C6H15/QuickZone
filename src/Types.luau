@@ -309,10 +309,12 @@ export type EntityData = {
 	activeObserverMemberships: { [number]: number },
 	lastPosition: Vector3,
 	strategy: number,
-	lastSpatialVersion: number,
 	precisionSq: number,
 	updateRate: number,
 	bucketIndex: number,
+	staticVersion: number,
+	dynamicVersion: number,
+	logicVersion: number,
 }
 
 return nil

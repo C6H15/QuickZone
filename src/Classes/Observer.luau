@@ -825,7 +825,7 @@ function Observer.setEnabled(self: Types.InternalObserver, enabled: boolean): Ty
 
 	local id = self.id
 	State.observerEnabled[id] = enabled
-	State.spatialVersion += 1
+	State.logicVersion += 1
 
 	if not enabled then
 		for groupId, observersMap in State.groupToObservers do
@@ -870,7 +870,7 @@ end
 ]=]
 function Observer.setPriority(self: Types.InternalObserver, p: number): Types.Observer
 	State.observerPriorityMap[self.id] = p
-	State.spatialVersion += 1
+	State.logicVersion += 1
 	return self
 end
 
@@ -1464,9 +1464,12 @@ function Observer.destroy(self: Types.InternalObserver): ()
 
 	for _, attachedList in State.zoneAttachedObservers do
 		local idx = table.find(attachedList, id)
-		while idx do
-			table.remove(attachedList, idx)
-			idx = table.find(attachedList, id)
+		if idx then
+			local lastIdx = #attachedList
+			if idx ~= lastIdx then
+				attachedList[idx] = attachedList[lastIdx]
+			end
+			attachedList[lastIdx] = nil
 		end
 	end
 
@@ -1478,8 +1481,10 @@ function Observer.destroy(self: Types.InternalObserver): ()
 	State.observerIdToObserverObj[id] = nil
 	State.observerEnabled[id] = nil
 	State.observerSafety[id] = nil
+	State.observerUpdateRate[id] = nil
+	State.observerPrecisionSq[id] = nil
 
-	State.spatialVersion += 1
+	State.logicVersion += 1
 	setmetatable(self :: any, nil)
 end
 

@@ -20,7 +20,9 @@ State.staticTree = { nodes = {}, count = 0 } :: Types.Tree
 State.dynamicTree = { nodes = {}, count = 0 } :: Types.Tree
 State.pendingStaticRebuild = false
 State.pendingDynamicRebuild = false
-State.spatialVersion = 1
+State.staticVersion = 1
+State.dynamicVersion = 1
+State.logicVersion = 1
 
 State.groups = {} :: { [number]: Types.InternalGroup }
 State.groupToObservers = {} :: { [number]: { [number]: boolean } }
