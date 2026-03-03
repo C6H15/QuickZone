@@ -58,10 +58,10 @@ local autoSyncRate = Config.Scheduler.autoSyncRate
 local autoSyncTimer = 0
 local autoUpdateConnection: RBXScriptConnection?
 
+local bucketList = State.bucketList
+local buckets = State.buckets
 local nextBucketIndex = 1 -- Round-robin pointer
 local bucketLastProcessedIndex = {} :: { [number]: number }
-local bucketList = {} :: { number }
-local buckets = {} :: { [number]: { Types.Entity } }
 local BUDGET_CHECK = 32
 
 local STRAT_POS = Config.Strategy.POS
@@ -130,7 +130,7 @@ local function processProfileChange(entity: Types.Entity)
 
 			oldBucket[maxEntities] = nil
 
-			if maxEntities == 1 then -- destroy empty bucket
+			if maxEntities == 1 then -- Destroy empty bucket
 				buckets[currentRate] = nil
 				local listIdx = table.find(bucketList, currentRate)
 				if listIdx then

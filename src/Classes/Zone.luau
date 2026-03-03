@@ -91,9 +91,17 @@ local function updateObserverZoneCount(observerId: number, isDynamic: boolean, d
 
 	-- Only flag entities dirty if the observer's topology fundamentally changed
 	if (current == 0 and newCount == 1) or (current == 1 and newCount == 0) then
-		local tracked = State.observerTrackingEntities[observerId]
-		if tracked then
-			for entity, _ in tracked do
+		for groupId, observers in State.groupToObservers do
+			if not observers[observerId] then
+				continue
+			end
+
+			local group = State.groups[groupId]
+			if not group then
+				continue
+			end
+
+			for _, entity in group.entities do
 				State.dirtyTopology[entity] = true
 			end
 		end

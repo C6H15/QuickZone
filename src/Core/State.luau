@@ -33,6 +33,8 @@ State.entityToObservers = {} :: { [Types.Entity]: { [number]: boolean } }
 State.entityToPlayer = {} :: { [Types.Entity]: Player }
 State.dirtyProfiles = {} :: { [Types.Entity]: boolean }
 State.dirtyTopology = {} :: { [Types.Entity]: boolean }
+State.bucketList = {} :: { number }
+State.buckets = {} :: { [number]: { Types.Entity } }
 
 State.observerTrackingEntities = {} :: { [number]: { [Types.Entity]: boolean } }
 State.observerPriorityMap = {} :: { [number]: number }

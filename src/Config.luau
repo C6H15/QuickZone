@@ -27,7 +27,7 @@ Config.Scheduler = {
 
 	-- How often (in Hz) to automatically sync zone positions to their references.
 	-- Only applies to zones with autoSync enabled.
-	autoSyncRate = 0,
+	autoSyncRate = 30,
 }
 
 Config.Observer = {

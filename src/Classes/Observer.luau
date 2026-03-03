@@ -11,6 +11,7 @@ local Geometry = require(script.Parent.Parent.Utils.Geometry)
 local isPointInShape = Geometry.isPointInShape
 
 local dirtyProfiles = State.dirtyProfiles
+local dirtyTopology = State.dirtyTopology
 local zoneAttachedObservers = State.zoneAttachedObservers
 
 local staticCFrames = State.staticCFrames
@@ -37,6 +38,7 @@ local function updateAllEntitiesForObserver(observerId: number)
 
 		for _, entity in group.entities do
 			dirtyProfiles[entity] = true
+			dirtyTopology[entity] = true
 		end
 	end
 end
@@ -51,6 +53,7 @@ local function disconnectObserverFromGroup(observerId: number, group: Types.Inte
 		end
 
 		dirtyProfiles[entity] = true
+		dirtyTopology[entity] = true
 
 		local activeObservers = State.entityToObservers[entity] or {}
 		local oldZoneId = data.activeObserverMemberships[observerId]
@@ -173,6 +176,7 @@ function Observer.subscribe(self: Types.InternalObserver, group: Types.InternalG
 
 	for _, entity in group.entities do
 		dirtyProfiles[entity] = true
+		dirtyTopology[entity] = true
 	end
 
 	return self

@@ -300,14 +300,14 @@ function Group.localPlayer(): Types.Group
 end
 
 --[=[ 
-    Enables or disables automatic cleanup for Instances in this group.
-    When enabled, if an Instance is Destroyed() or parented to nil, it will be 
-    automatically removed from this group.
+	Enables or disables automatic cleanup for Instances in this group.
+	When enabled, if an Instance is Destroyed() or parented to nil, it will be 
+	automatically removed from this group.
 
-    @method setAutoClean
-    @within Group
-    @param enabled boolean
-    @return Group
+	@method setAutoClean
+	@within Group
+	@param enabled boolean
+	@return Group
 ]=]
 function Group.setAutoClean(self: Types.InternalGroup, enabled: boolean): Types.Group
 	if self.isManaged then
@@ -726,7 +726,6 @@ function Group._remove(self: Types.InternalGroup, entity: Types.Entity): Types.G
 	local idx = self.entityIndices[entity]
 	local lastIdx = #self.entities
 	local lastEntity = self.entities[lastIdx]
-
 	if idx == lastIdx then
 		self.entities[lastIdx] = nil
 		self.entityIndices[entity] = nil
@@ -771,6 +770,34 @@ function Group._remove(self: Types.InternalGroup, entity: Types.Entity): Types.G
 	end
 
 	if next(State.entityToGroups[entity]) == nil then
+		-- Remove from bucket
+		local currentRate = data.updateRate
+		if currentRate and currentRate > 0 and State.buckets[currentRate] then
+			local bucket = State.buckets[currentRate]
+			local bucketIdx = data.bucketIndex
+			local maxEntities = #bucket
+			local lastEntity = bucket[maxEntities]
+
+			-- We swap and then pop to avoid shifting all entities down
+			if bucketIdx ~= maxEntities then
+				bucket[bucketIdx] = lastEntity
+				if State.entityData[lastEntity] then
+					State.entityData[lastEntity].bucketIndex = bucketIdx
+				end
+			end
+
+			bucket[maxEntities] = nil
+
+			-- Destroy empty bucket
+			if maxEntities == 1 then
+				State.buckets[currentRate] = nil
+				local listIdx = table.find(State.bucketList, currentRate)
+				if listIdx then
+					table.remove(State.bucketList, listIdx)
+				end
+			end
+		end
+
 		State.entityData[entity] = nil
 		State.entityToGroups[entity] = nil
 		State.entityToObservers[entity] = nil
