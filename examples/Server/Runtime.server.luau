@@ -7,6 +7,8 @@ QuickZone:configure({
 	frameBudget = 1,
 })
 
-for _, moduleScript: ModuleScript in script.Parent.Observers:GetChildren() do
-	require(moduleScript)
+for _, instance in script.Parent.Observers:GetChildren() do
+	if instance:IsA('ModuleScript') then
+		require(instance)
+	end
 end
