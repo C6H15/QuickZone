@@ -227,8 +227,8 @@ end
 	@return () -> () -- Disconnect function
 ]=]
 function Observer.observe(self: Types.InternalObserver<any>, callback: (any, Types.Zone) -> (() -> ())?): () -> ()
-	local cleanups = {} :: { [Types.Entity]: () -> () }
-	local activeIds = {} :: { [Types.Entity]: number }
+	local cleanups = {} :: { [any]: () -> () }
+	local activeIds = {} :: { [any]: number }
 	local nextId = 0 -- sessionId for each entity
 
 	local cleanupEnter = self:onEnter(function(entity, zone)
@@ -570,12 +570,14 @@ end
 ]=]
 function Observer.observeGroup(
 	self: Types.InternalObserver<any>,
-	callback: (Types.Group, Types.Zone) -> (() -> ())?
+	callback: (Types.Group<any>, Types.Zone) -> (() -> ())?
 ): () -> ()
 	local activeMembers = {} :: { [number]: { [Types.Entity]: boolean } }
 	local cleanups = {} :: { [number]: () -> () }
 
 	return self:observe(function(entity, zone)
+		entity = State.referenceToEntity[entity] or entity
+
 		local groups = State.entityToGroups[entity]
 		if not groups then
 			return
@@ -635,10 +637,15 @@ end
 	@param callback (group: Group, zone: Zone) -> ()
 	@return () -> () -- Disconnect function
 ]=]
-function Observer.onGroupEnter(self: Types.InternalObserver<any>, callback: (Types.Group, Types.Zone) -> ()): () -> ()
+function Observer.onGroupEnter(
+	self: Types.InternalObserver<any>,
+	callback: (Types.Group<any>, Types.Zone) -> ()
+): () -> ()
 	local activeMembers = {} :: { [number]: { [Types.Entity]: boolean } }
 
 	return self:observe(function(entity, zone)
+		entity = State.referenceToEntity[entity] or entity
+
 		local groups = State.entityToGroups[entity]
 		if not groups then
 			return
@@ -689,10 +696,15 @@ end
 	@param callback (group: Group, zone: Zone) -> ()
 	@return () -> () -- Disconnect function
 ]=]
-function Observer.onGroupExit(self: Types.InternalObserver<any>, callback: (Types.Group, Types.Zone) -> ()): () -> ()
+function Observer.onGroupExit(
+	self: Types.InternalObserver<any>,
+	callback: (Types.Group<any>, Types.Zone) -> ()
+): () -> ()
 	local activeMembers = {} :: { [number]: { [Types.Entity]: boolean } }
 
 	return self:observe(function(entity, zone)
+		entity = State.referenceToEntity[entity] or entity
+
 		local groups = State.entityToGroups[entity]
 		if not groups then
 			return
@@ -1122,7 +1134,7 @@ end
 	@within Observer
 	@return { Group }
 ]=]
-function Observer.getGroups(self: Types.InternalObserver<any>): { Types.Group }
+function Observer.getGroups(self: Types.InternalObserver<any>): { Types.Group<any> }
 	local result = {}
 
 	for groupId, observersMap in State.groupToObservers do
@@ -1249,12 +1261,12 @@ end
 	@within Observer
 	@return () -> Group?
 ]=]
-function Observer.iterGroups(self: Types.InternalObserver<any>): () -> Types.Group?
+function Observer.iterGroups(self: Types.InternalObserver<any>): () -> Types.Group<any>?
 	local groupId = nil
 	local observersMap = nil
 	local observerId = self.id
 
-	return function(): Types.Group?
+	return function(): Types.Group<any>?
 		while true do
 			groupId, observersMap = next(State.groupToObservers, groupId)
 

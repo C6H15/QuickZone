@@ -136,7 +136,7 @@ local function newZoneInternal(
 	isDynamic: boolean,
 	metadata: any?,
 	autoSync: boolean,
-	observers: { Types.Observer }?
+	observers: { Types.Observer<any> }?
 ): Types.Zone
 	local id = State.nextZoneId
 	State.nextZoneId += 1
@@ -214,7 +214,7 @@ function Zone.new(config: {
 	isDynamic: boolean?,
 	metadata: any?,
 	autoSync: boolean?,
-	observers: { Types.Observer }?,
+	observers: { Types.Observer<any> }?,
 }): Types.Zone
 	local shapeType = Enum.PartType.Block.Value
 
@@ -269,7 +269,7 @@ function Zone.fromPart(
 		isDynamic: boolean?,
 		metadata: any?,
 		autoSync: boolean?,
-		observers: { Types.Observer }?,
+		observers: { Types.Observer<any> }?,
 	}?
 ): Types.Zone
 	local shapeId = Enum.PartType.Block.Value
@@ -304,7 +304,7 @@ function Zone.fromParts(
 		isDynamic: boolean?,
 		metadata: any?,
 		autoSync: boolean?,
-		observers: { Types.Observer }?,
+		observers: { Types.Observer<any> }?,
 	}?
 ): Types.Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
@@ -353,7 +353,7 @@ function Zone.fromChildren(
 		isDynamic: boolean?,
 		metadata: any?,
 		autoSync: boolean?,
-		observers: { Types.Observer }?,
+		observers: { Types.Observer<any> }?,
 	}?
 ): Types.Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
@@ -433,7 +433,7 @@ function Zone.fromDescendants(
 		isDynamic: boolean?,
 		metadata: any?,
 		autoSync: boolean?,
-		observers: { Types.Observer }?,
+		observers: { Types.Observer<any> }?,
 	}?
 ): Types.Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
@@ -506,7 +506,7 @@ function Zone.fromTag(
 		isDynamic: boolean?,
 		metadata: any?,
 		autoSync: boolean?,
-		observers: { Types.Observer }?,
+		observers: { Types.Observer<any> }?,
 	}?
 ): Types.Zones
 	-- Create Zones
@@ -606,7 +606,7 @@ end
 	@param observer Observer -- The observer to link.
 	@return Zone
 ]=]
-function Zone.attach(self: Types.InternalZone, observer: Types.InternalObserver): Types.Zone
+function Zone.attach(self: Types.InternalZone, observer: Types.InternalObserver<any>): Types.Zone
 	local attached = State.zoneAttachedObservers[self.id] or {}
 	State.zoneAttachedObservers[self.id] = attached
 
@@ -632,7 +632,7 @@ end
 	@param observer Observer -- The observer to unlink.
 	@return Zone
 ]=]
-function Zone.detach(self: Types.InternalZone, observer: Types.InternalObserver): Types.Zone
+function Zone.detach(self: Types.InternalZone, observer: Types.InternalObserver<any>): Types.Zone
 	local attached = State.zoneAttachedObservers[self.id]
 	if not attached then
 		return self
@@ -1182,12 +1182,12 @@ function Zone.destroy(self: Types.InternalZone): ()
 				end
 
 				local safety = State.observerSafety[observerId]
-
+				local ref = State.entityToReference[entity] or entity
 				for _, fn in cbs do
 					if safety then
-						task.spawn(fn, entity, self)
+						task.spawn(fn, ref, self)
 					else
-						fn(entity, self)
+						fn(ref, self)
 					end
 				end
 			end

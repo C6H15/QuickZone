@@ -296,12 +296,12 @@ end
 	@within QuickZone
 	@return { Observer }
 ]=]
-function QuickZone:getObservers(): { Types.BaseObserver }
+function QuickZone:getObservers(): { Types.Observer<any> }
 	local result = {}
 	for _, observer in observerIdToObserverObj do
 		table.insert(result, observer)
 	end
-	return (result :: any) :: { Types.BaseObserver }
+	return (result :: any) :: { Types.Observer<any> }
 end
 
 --[=[ 
@@ -511,10 +511,10 @@ end
 	@within QuickZone
 	@return () -> Observer?
 ]=]
-function QuickZone:iterObservers(): () -> Types.BaseObserver?
+function QuickZone:iterObservers(): () -> Types.Observer<any>?
 	local observerId = nil
 
-	return function(): Types.BaseObserver?
+	return function(): Types.Observer<any>?
 		observerId = next(observerIdToObserverObj, observerId)
 		return observerId and observerIdToObserverObj[observerId] or nil
 	end

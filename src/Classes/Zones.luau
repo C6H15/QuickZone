@@ -23,8 +23,8 @@ function Zones.new(config: { isDynamic: boolean?, autoSync: boolean?, metadata: 
 		metadata = metadata,
 		autoSync = autoSync,
 		zones = {} :: { [Types.Zone]: boolean },
-		observers = {} :: { [Types.Observer]: boolean },
-		onDestroyObserverCleanups = {} :: { [Types.Observer]: () -> () },
+		observers = {} :: { [Types.Observer<any>]: boolean },
+		onDestroyObserverCleanups = {} :: { [Types.Observer<any>]: () -> () },
 		onDestroyZoneCleanups = {} :: { [Types.Zone]: () -> () },
 	}, Zones) :: any
 
@@ -39,7 +39,7 @@ end
 	@param observer Observer
 	@return Zones
 ]=]
-function Zones.attach(self: Types.InternalZones, observer: Types.Observer): Types.Zones
+function Zones.attach(self: Types.InternalZones, observer: Types.InternalObserver<any>): Types.Zones
 	if self.observers[observer] then
 		return self
 	end
@@ -64,7 +64,7 @@ end
 	@param observer Observer
 	@return Zones
 ]=]
-function Zones.detach(self: Types.InternalZones, observer: Types.Observer): Types.Zones
+function Zones.detach(self: Types.InternalZones, observer: Types.InternalObserver<any>): Types.Zones
 	if not self.observers[observer] then
 		return self
 	end

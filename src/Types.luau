@@ -93,7 +93,7 @@ export type ObserverClass = {
 			enabled: boolean?,
 			safety: boolean?,
 		}?
-	) -> BaseObserver,
+	) -> Observer<T>,
 }
 
 export type InternalObserver<T = Entity> = Observer<T> & {
@@ -121,11 +121,11 @@ export type QuickZone = {
 	getEntityOfReference: (self: QuickZone, reference: any) -> Entity?,
 	getReferenceOfEntity: (self: QuickZone, entity: Entity) -> any,
 	getZones: (self: QuickZone) -> { Zone },
-	getObservers: (self: QuickZone) -> { BaseObserver },
+	getObservers: (self: QuickZone) -> { Observer<any> },
 	getGroups: (self: QuickZone) -> { Group<any> },
 	getEntities: (self: QuickZone) -> { any },
 	iterZones: (self: QuickZone) -> () -> Zone?,
-	iterObservers: (self: QuickZone) -> () -> BaseObserver?,
+	iterObservers: (self: QuickZone) -> () -> Observer<any>?,
 	iterGroups: (self: QuickZone) -> () -> Group<any>?,
 	iterEntities: (self: QuickZone) -> () -> any?,
 	getZonesAtPoint: (self: QuickZone, position: Vector3) -> { Zone },
@@ -146,87 +146,34 @@ export type ZoneClass = {
 			isDynamic: boolean?,
 			metadata: any?,
 			autoSync: boolean?,
-			observers: { BaseObserver }?,
+			observers: { Observer<any> }?,
 		}
 	) -> Zone,
 	fromPart: (
 		part: BasePart,
-		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { BaseObserver }? }?
+		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Observer<any> }? }?
 	) -> Zone,
 	fromParts: (
 		parts: { BasePart },
-		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { BaseObserver }? }?
+		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Observer<any> }? }?
 	) -> Zones,
 	fromTag: (
 		tag: string,
-		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { BaseObserver }? }?
+		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Observer<any> }? }?
 	) -> Zones,
 	fromDescendants: (
 		parent: Instance,
-		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { BaseObserver }? }?
+		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Observer<any> }? }?
 	) -> Zones,
 	fromChildren: (
 		parent: Instance,
-		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { BaseObserver }? }?
+		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Observer<any> }? }?
 	) -> Zones,
 }
 
-export type BaseObserver = {
-	subscribe: (self: BaseObserver, group: Group<any>) -> BaseObserver,
-	unsubscribe: (self: BaseObserver, group: Group<any>) -> BaseObserver,
-	setPriority: (self: BaseObserver, n: number) -> BaseObserver,
-	setUpdateRate: (self: BaseObserver, hz: number) -> BaseObserver,
-	setPrecision: (self: BaseObserver, n: number) -> BaseObserver,
-	setEnabled: (self: BaseObserver, enabled: boolean) -> BaseObserver,
-	setSafety: (self: BaseObserver, enabled: boolean) -> BaseObserver,
-
-	isEnabled: (self: BaseObserver) -> boolean,
-	isSafe: (self: BaseObserver) -> boolean,
-	isPointInside: (self: BaseObserver, position: Vector3) -> boolean,
-
-	getId: (self: BaseObserver) -> number,
-	getPriority: (self: BaseObserver) -> number,
-	getUpdateRate: (self: BaseObserver) -> number,
-	getPrecision: (self: BaseObserver) -> number,
-	getZones: (self: BaseObserver) -> { Zone },
-	getGroups: (self: BaseObserver) -> { Group<any> },
-	getEntitiesInside: (self: BaseObserver) -> { any },
-	getPlayersInside: (self: BaseObserver) -> { Player },
-	getZoneOfEntity: (self: BaseObserver, entity: any) -> Zone?,
-	getZoneOfPlayer: (self: BaseObserver, player: Player) -> Zone?,
-	getEntitiesInZone: (self: BaseObserver, zone: Zone) -> { any },
-	getPlayersInZone: (self: BaseObserver, zone: Zone) -> { Player },
-
-	iterZones: (self: BaseObserver) -> () -> Zone?,
-	iterGroups: (self: BaseObserver) -> () -> Group<any>?,
-	iterEntitiesInside: (self: BaseObserver) -> () -> (any?, Zone?),
-	iterPlayersInside: (self: BaseObserver) -> () -> (Player?, Zone?),
-	iterEntitiesInZone: (self: BaseObserver, zone: Zone) -> () -> any?,
-	iterPlayersInZone: (self: BaseObserver, zone: Zone) -> () -> Player?,
-
-	observe: (self: BaseObserver, callback: (any, Zone) -> (() -> ())?) -> () -> (),
-	observePlayer: (self: BaseObserver, callback: (Player, Zone) -> (() -> ())?) -> () -> (),
-	observeLocalPlayer: (self: BaseObserver, callback: (Zone) -> (() -> ())?) -> () -> (),
-	observeGroup: (self: BaseObserver, callback: (Group<any>, Zone) -> (() -> ())?) -> () -> (),
-	onEnter: (self: BaseObserver, callback: (any, Zone) -> ()) -> () -> (),
-	onExit: (self: BaseObserver, callback: (any, Zone) -> ()) -> () -> (),
-	onPlayerEnter: (self: BaseObserver, callback: (Player, Zone) -> ()) -> () -> (),
-	onPlayerExit: (self: BaseObserver, callback: (Player, Zone) -> ()) -> () -> (),
-	onLocalPlayerEnter: (self: BaseObserver, callback: (Zone) -> ()) -> () -> (),
-	onLocalPlayerExit: (self: BaseObserver, callback: (Zone) -> ()) -> () -> (),
-	onGroupEnter: (self: BaseObserver, callback: (Group<any>, Zone) -> ()) -> () -> (),
-	onGroupExit: (self: BaseObserver, callback: (Group<any>, Zone) -> ()) -> () -> (),
-	onTransition: (self: BaseObserver, callback: (any, Zone, Zone) -> ()) -> () -> (),
-	onPlayerTransition: (self: BaseObserver, callback: (Player, Zone, Zone) -> ()) -> () -> (),
-	onLocalPlayerTransition: (self: BaseObserver, callback: (Zone, Zone) -> ()) -> () -> (),
-
-	onDestroy: (self: BaseObserver, callback: () -> ()) -> () -> (),
-	destroy: (self: BaseObserver) -> (),
-}
-
 export type Zone = {
-	attach: (self: Zone, observer: BaseObserver) -> Zone,
-	detach: (self: Zone, observer: BaseObserver) -> Zone,
+	attach: (self: Zone, observer: any) -> Zone,
+	detach: (self: Zone, observer: any) -> Zone,
 
 	sync: (self: Zone) -> Zone,
 	setReference: (self: Zone, reference: (BasePart | Attachment | Bone)?) -> Zone,
@@ -264,8 +211,8 @@ export type InternalZone = Zone & {
 }
 
 export type Zones = {
-	attach: (self: Zones, observer: BaseObserver) -> Zones,
-	detach: (self: Zones, observer: BaseObserver) -> Zones,
+	attach: (self: Zones, observer: Observer<any>) -> Zones,
+	detach: (self: Zones, observer: Observer<any>) -> Zones,
 
 	sync: (self: Zones) -> Zones,
 	setAutoSync: (self: Zones, autoSync: boolean) -> Zones,
@@ -287,9 +234,9 @@ export type InternalZones = Zones & {
 	dynamic: boolean,
 	metadata: any?,
 	zones: { [Zone]: boolean },
-	observers: { [BaseObserver]: boolean },
+	observers: { [Observer<any>]: boolean },
 	onDestroyCallbacks: { () -> () }?,
-	onDestroyObserverCleanups: { [BaseObserver]: () -> () },
+	onDestroyObserverCleanups: { [Observer<any>]: () -> () },
 	onDestroyZoneCleanups: { [Zone]: () -> () },
 	add: (self: InternalZones, zone: Zone) -> (),
 	remove: (self: InternalZones, zone: Zone) -> (),
