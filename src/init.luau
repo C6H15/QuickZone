@@ -176,7 +176,7 @@ function QuickZone:setReference(reference: any, entity: Entity?): QuickZone
 		if oldReference then
 			referenceToEntity[oldReference] = nil
 		end
-		entityToReference[reference] = nil
+		entityToReference[entity] = nil
 		return self
 	end
 

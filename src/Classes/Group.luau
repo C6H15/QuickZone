@@ -29,8 +29,6 @@ local function trackPlayer(group: Types.InternalGroup<any>, player: Player, trac
 	local function cleanCharacter()
 		if currentHrp then
 			group:_remove(currentHrp)
-			State.entityToReference[currentHrp] = nil
-			State.referenceToEntity[player] = nil
 			currentHrp = nil
 		end
 		for _, c in charConns do
