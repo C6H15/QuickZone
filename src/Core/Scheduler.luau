@@ -69,6 +69,11 @@ local STRAT_POS = Config.Strategy.POS
 local STRAT_PRIM = Config.Strategy.PRIM
 local STRAT_WORLD = Config.Strategy.WORLD
 local STRAT_CFRAME = Config.Strategy.CFRAME
+local STRAT_TRANSFORM = Config.Strategy.TRANSFORM
+local STRAT_PIVOT = Config.Strategy.PIVOT
+local STRAT_POS_LOWER = Config.Strategy.POS_LOWER
+local STRAT_CFRAME_LOWER = Config.Strategy.CFRAME_LOWER
+local STRAT_TRANSFORM_LOWER = Config.Strategy.TRANSFORM_LOWER
 
 local function processProfileChange(entity: Types.Entity)
 	local groups = entityToGroups[entity]
@@ -353,10 +358,18 @@ function Scheduler.update(dt: number)
 				pos = (entity :: Attachment).WorldPosition
 			elseif strategy == STRAT_CFRAME then
 				pos = (entity :: BasePart).CFrame.Position
+			elseif strategy == STRAT_TRANSFORM then
+				pos = (entity :: any).Transform.Position
 			elseif strategy == STRAT_PRIM then
 				local prim = (entity :: Model).PrimaryPart
 				pos = prim and prim.Position or (entity :: Model):GetPivot().Position
-			else
+			elseif strategy == STRAT_TRANSFORM_LOWER then
+				pos = (entity :: any).transform.Position
+			elseif strategy == STRAT_CFRAME_LOWER then
+				pos = (entity :: any).cframe.Position
+			elseif strategy == STRAT_POS_LOWER then
+				pos = (entity :: any).position
+			elseif strategy == STRAT_PIVOT then
 				pos = (entity :: any):GetPivot().Position
 			end
 

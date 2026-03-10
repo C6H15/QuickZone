@@ -290,7 +290,7 @@ export type InternalGroup<T = Entity> = Group<T> & {
 	@within QuickZone
 
 	An Entity is any object that can be tracked within a Group. It supports native 
-	Roblox Instances and custom duck-typed tables.
+	Roblox Instances and custom duck-typed tables (useful for custom physics simulation or ECS components)
 ]=]
 export type Entity = BasePart | Model | Camera | Attachment | Bone | EntityTable
 
@@ -300,7 +300,11 @@ export type Entity = BasePart | Model | Camera | Attachment | Bone | EntityTable
 	.Position Vector3?
 	.WorldPosition Vector3?
 	.CFrame CFrame?
+	.Transform: CFrame?
 	.GetPivot (() -> CFrame)?
+	.position: Vector3?
+	.cframe: Vector3?
+	.transform: Vector3?
 
 	A custom table that mimics the spatial properties of a Roblox Instance. 
 	QuickZone will automatically detect which property to use to track this entity.
@@ -309,7 +313,11 @@ export type EntityTable = {
 	Position: Vector3?,
 	WorldPosition: Vector3?,
 	CFrame: CFrame?,
+	Transform: CFrame?,
 	GetPivot: ((self: any) -> CFrame)?,
+	position: Vector3?,
+	cframe: Vector3?,
+	transform: Vector3?,
 	[any]: any,
 }
 

@@ -8,7 +8,11 @@ Config.Strategy = {
 	PRIM = 2,
 	WORLD = 3,
 	CFRAME = 4,
-	PIVOT = 5,
+	TRANSFORM = 5,
+	PIVOT = 6,
+	POS_LOWER = 7,
+	CFRAME_LOWER = 8,
+	TRANSFORM_LOWER = 9,
 }
 
 Config.Group = {
