@@ -227,11 +227,13 @@ end
 	@return () -> () -- Disconnect function
 ]=]
 function Observer.observe(self: Types.InternalObserver<any>, callback: (any, Types.Zone) -> (() -> ())?): () -> ()
-	local cleanups = {} :: { [any]: () -> () }
-	local activeIds = {} :: { [any]: number }
-	local nextId = 0 -- sessionId for each entity
+	local cleanups = {} :: { [Types.Entity]: () -> () }
+	local activeIds = {} :: { [Types.Entity]: number }
+	local nextId = 0
 
 	local cleanupEnter = self:onEnter(function(entity, zone)
+		entity = State.referenceToEntity[entity] or entity
+
 		nextId += 1
 		local observerId = nextId
 		activeIds[entity] = observerId
@@ -251,6 +253,8 @@ function Observer.observe(self: Types.InternalObserver<any>, callback: (any, Typ
 	end)
 
 	local cleanupExit = self:onExit(function(entity, _)
+		entity = State.referenceToEntity[entity] or entity
+
 		activeIds[entity] = nil
 
 		local cleanup = cleanups[entity]
@@ -340,18 +344,25 @@ function Observer.observePlayer(
 	self: Types.InternalObserver<any>,
 	callback: (Player, Types.Zone) -> (() -> ())?
 ): () -> ()
-	local cleanups = {} :: { [Player]: () -> () }
-	local activeIds = {} :: { [Player]: number }
+	local cleanups = {} :: { [Types.Entity]: () -> () }
+	local activeIds = {} :: { [Types.Entity]: number }
 	local nextId = 0
 
-	local cleanupEnter = self:onPlayerEnter(function(player, zone)
+	local cleanupEnter = self:onEnter(function(entity, zone)
+		entity = State.referenceToEntity[entity] or entity
+		local player = State.entityToReference[entity] or entity
+
+		if not (typeof(player) == 'Instance' and player:IsA('Player')) then
+			return
+		end
+
 		nextId += 1
 		local observerId = nextId
-		activeIds[player] = observerId
+		activeIds[entity] = observerId
 
 		local cleanup = callback(player, zone)
 
-		if activeIds[player] ~= observerId then
+		if activeIds[entity] ~= observerId then
 			if type(cleanup) == 'function' then
 				cleanup()
 			end
@@ -359,16 +370,22 @@ function Observer.observePlayer(
 		end
 
 		if type(cleanup) == 'function' then
-			cleanups[player] = cleanup
+			cleanups[entity] = cleanup
 		end
 	end)
 
-	local cleanupExit = self:onPlayerExit(function(player, _)
-		activeIds[player] = nil
+	local cleanupExit = self:onExit(function(entity, _)
+		entity = State.referenceToEntity[entity] or entity
 
-		local cleanup = cleanups[player]
+		if not activeIds[entity] then
+			return
+		end
+
+		activeIds[entity] = nil
+
+		local cleanup = cleanups[entity]
 		if cleanup then
-			cleanups[player] = nil
+			cleanups[entity] = nil
 			cleanup()
 		end
 	end)
@@ -379,8 +396,8 @@ function Observer.observePlayer(
 
 		table.clear(activeIds)
 
-		for player, cleanup in cleanups do
-			cleanups[player] = nil
+		for entity, cleanup in cleanups do
+			cleanups[entity] = nil
 			task.spawn(cleanup)
 		end
 	end
@@ -454,16 +471,25 @@ end
 function Observer.observeLocalPlayer(self: Types.InternalObserver<any>, callback: (Types.Zone) -> (() -> ())?): () -> ()
 	assert(IS_CLIENT, '[QuickZone] Observer:observeLocalPlayer can only be called on the Client.')
 
-	local currentCleanup = nil :: (() -> ())?
-	local currentId = 0
+	local cleanups = {} :: { [Types.Entity]: () -> () }
+	local activeIds = {} :: { [Types.Entity]: number }
+	local nextId = 0
 
-	local cleanupEnter = self:onLocalPlayerEnter(function(zone)
-		currentId += 1
-		local observerId = currentId
+	local cleanupEnter = self:onEnter(function(entity, zone)
+		entity = State.referenceToEntity[entity] or entity
+		local player = State.entityToReference[entity] or entity
+
+		if player ~= Players.LocalPlayer then
+			return
+		end
+
+		nextId += 1
+		local observerId = nextId
+		activeIds[entity] = observerId
 
 		local cleanup = callback(zone)
 
-		if currentId ~= observerId then
+		if activeIds[entity] ~= observerId then
 			if type(cleanup) == 'function' then
 				cleanup()
 			end
@@ -471,16 +497,22 @@ function Observer.observeLocalPlayer(self: Types.InternalObserver<any>, callback
 		end
 
 		if type(cleanup) == 'function' then
-			currentCleanup = cleanup
+			cleanups[entity] = cleanup
 		end
 	end)
 
-	local cleanupExit = self:onLocalPlayerExit(function(_)
-		currentId = 0
+	local cleanupExit = self:onExit(function(entity, _)
+		entity = State.referenceToEntity[entity] or entity
 
-		if currentCleanup then
-			local cleanup = currentCleanup
-			currentCleanup = nil
+		if not activeIds[entity] then
+			return
+		end
+
+		activeIds[entity] = nil
+
+		local cleanup = cleanups[entity]
+		if cleanup then
+			cleanups[entity] = nil
 			cleanup()
 		end
 	end)
@@ -489,11 +521,10 @@ function Observer.observeLocalPlayer(self: Types.InternalObserver<any>, callback
 		cleanupEnter()
 		cleanupExit()
 
-		currentId = 0
+		table.clear(activeIds)
 
-		if currentCleanup then
-			local cleanup = currentCleanup
-			currentCleanup = nil
+		for entity, cleanup in cleanups do
+			cleanups[entity] = nil
 			task.spawn(cleanup)
 		end
 	end
@@ -742,19 +773,15 @@ end
 
 --[=[ 
 	Fires when an entity seamlessly transitions from one attached zone to another 
-	overlapping attached zone. If `targetEntity` is provided, the event will silently 
-	filter out all other entities.
+	overlapping attached zone.
 
 	@tag Event
 	@method onTransition
 	@within Observer
-	@param callback (entity: any, newZone: Zone, oldZone: Zone) -> ()
+	@param callback (entity: any, newZone: Zone) -> ()
 	@return () -> () -- Disconnect function
 ]=]
-function Observer.onTransition(
-	self: Types.InternalObserver<any>,
-	callback: (any, Types.Zone, Types.Zone) -> ()
-): () -> ()
+function Observer.onTransition(self: Types.InternalObserver<any>, callback: (any, Types.Zone) -> ()): () -> ()
 	table.insert(State.observerTransitionedCallbacks[self.id], callback)
 
 	return function()
@@ -772,27 +799,16 @@ end
 	@tag Event
 	@method onPlayerTransition
 	@within Observer
-	@param callback (player: Player, newZone: Zone, oldZone: Zone) -> ()
+	@param callback (player: Player, newZone: Zone) -> ()
 	@return () -> () -- Disconnect function
 ]=]
-function Observer.onPlayerTransition(
-	self: Types.InternalObserver<any>,
-	callback: (Player, Types.Zone, Types.Zone) -> ()
-): () -> ()
-	local wrapper = function(entity, newZone, oldZone)
-		if typeof(entity) == 'Instance' and entity:IsA('Player') then
-			callback(entity, newZone, oldZone)
+function Observer.onPlayerTransition(self: Types.InternalObserver<any>, callback: (Player, Types.Zone) -> ()): () -> ()
+	return self:onTransition(function(entity, newZone)
+		local player = State.entityToReference[entity] or entity
+		if typeof(player) == 'Instance' and player:IsA('Player') then
+			callback(player, newZone)
 		end
-	end
-
-	table.insert(State.observerTransitionedCallbacks[self.id], wrapper)
-
-	return function()
-		local idx = table.find(State.observerTransitionedCallbacks[self.id], wrapper)
-		if idx then
-			table.remove(State.observerTransitionedCallbacks[self.id], idx)
-		end
-	end
+	end)
 end
 
 --[=[ 
@@ -802,29 +818,18 @@ end
 	@tag Event
 	@method onLocalPlayerTransition
 	@within Observer
-	@param callback (newZone: Zone, oldZone: Zone) -> ()
+	@param callback (newZone: Zone) -> ()
 	@return () -> () -- Disconnect function
 ]=]
-function Observer.onLocalPlayerTransition(
-	self: Types.InternalObserver<any>,
-	callback: (Types.Zone, Types.Zone) -> ()
-): () -> ()
+function Observer.onLocalPlayerTransition(self: Types.InternalObserver<any>, callback: (Types.Zone) -> ()): () -> ()
 	assert(IS_CLIENT, '[QuickZone] Observer:onLocalPlayerTransition can only be called on the Client.')
 
-	local wrapper = function(entity, newZone, oldZone)
-		if typeof(entity) == 'Instance' and entity == Players.LocalPlayer then
-			callback(newZone, oldZone)
+	return self:onTransition(function(entity, newZone)
+		local player = State.entityToReference[entity] or entity
+		if player == Players.LocalPlayer then
+			callback(newZone)
 		end
-	end
-
-	table.insert(State.observerTransitionedCallbacks[self.id], wrapper)
-
-	return function()
-		local idx = table.find(State.observerTransitionedCallbacks[self.id], wrapper)
-		if idx then
-			table.remove(State.observerTransitionedCallbacks[self.id], idx)
-		end
-	end
+	end)
 end
 
 --[=[ 

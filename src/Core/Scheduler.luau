@@ -461,14 +461,13 @@ function Scheduler.update(dt: number)
 
 						local ref = entityToReference[entity] or entity
 						local newZoneObj = zoneIdToZoneObj[zoneIdx]
-						local oldZoneObj = zoneIdToZoneObj[currentZoneId]
 						if safety then
 							for _, cb in cbs do
-								task.spawn(cb, ref, newZoneObj, oldZoneObj)
+								task.spawn(cb, ref, newZoneObj)
 							end
 						else
 							for _, cb in cbs do
-								cb(ref, newZoneObj, oldZoneObj)
+								cb(ref, newZoneObj)
 							end
 						end
 					end

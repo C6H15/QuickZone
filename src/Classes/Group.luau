@@ -61,8 +61,10 @@ local function trackPlayer(group: Types.InternalGroup<any>, player: Player, trac
 
 				table.insert(
 					charConns,
-					hrp.Destroying:Connect(function()
-						cleanCharacter()
+					hrp.AncestryChanged:Connect(function(_, parent)
+						if not parent then
+							cleanCharacter()
+						end
 					end)
 				)
 			end

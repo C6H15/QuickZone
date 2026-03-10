@@ -75,9 +75,9 @@ export type Observer<T = Entity> = {
 	onLocalPlayerExit: (self: Observer<T>, callback: (Zone) -> ()) -> () -> (),
 	onGroupEnter: (self: Observer<T>, callback: (Group<T>, Zone) -> ()) -> () -> (),
 	onGroupExit: (self: Observer<T>, callback: (Group<T>, Zone) -> ()) -> () -> (),
-	onTransition: (self: Observer<T>, callback: (T, Zone, Zone) -> ()) -> () -> (),
-	onPlayerTransition: (self: Observer<T>, callback: (Player, Zone, Zone) -> ()) -> () -> (),
-	onLocalPlayerTransition: (self: Observer<T>, callback: (Zone, Zone) -> ()) -> () -> (),
+	onTransition: (self: Observer<T>, callback: (T, Zone) -> ()) -> () -> (),
+	onPlayerTransition: (self: Observer<T>, callback: (Player, Zone) -> ()) -> () -> (),
+	onLocalPlayerTransition: (self: Observer<T>, callback: (Zone) -> ()) -> () -> (),
 
 	onDestroy: (self: Observer<T>, callback: () -> ()) -> () -> (),
 	destroy: (self: Observer<T>) -> (),

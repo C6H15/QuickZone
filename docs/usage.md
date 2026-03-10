@@ -239,7 +239,7 @@ observer:onExit(function(entity, zone)
 end)
 
 -- Transition event (Fires when swapping between overlapping zones within the same observer)
-observer:onTransition(function(entity, newZone, oldZone)
+observer:onTransition(function(entity, newZone)
     print(entity.Name .. ' seamlessly moved to a new zone without leaving the area!')
 end)
 
@@ -254,10 +254,10 @@ end)
 -- Convenient player events
 observer:onPlayerEnter(function(player, zone) ... end)
 observer:onPlayerExit(function(player, zone) ... end)
-observer:onPlayerTransition(function(player, newZone, oldZone) ... end)
+observer:onPlayerTransition(function(player, newZone) ... end)
 observer:onLocalPlayerEnter(function(zone) ... end)
 observer:onLocalPlayerExit(function(zone) ... end)
-observer:onLocalPlayerTransition(function(newZone, oldZone) ... end)
+observer:onLocalPlayerTransition(function(newZone) ... end)
 ```
 
 ### Handling Overlapping Zones (Transitions vs. Priorities)
