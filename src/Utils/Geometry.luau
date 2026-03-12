@@ -1,4 +1,5 @@
 --!native
+--!optimize 2
 --!strict
 
 local BLOCK_SHAPE_VALUE = Enum.PartType.Block.Value
