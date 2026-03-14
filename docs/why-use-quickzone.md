@@ -6,7 +6,7 @@ sidebar_position: 3
 
 Traditional zone libraries like ZonePlus and SimpleZone act as wrappers for Roblox's physics engine (e.g., `GetBoundsInBox`, `GetPartsInPart` or `.Touched`), resulting in expensive collision geometry calculations and synchronization overhead.
 
-QuickZone bypasses the physics engine in favor of geometric math and data-oriented design. It implements a Linear BVH (LBVH) that resolves spatial queries using math compiled to machine code to prevent interpreter overhead.
+QuickZone bypasses the physics engine in favor of geometric math and data-oriented design. It implements a Linear BVH (LBVH) that resolves spatial queries using highly optimized VM bytecode to eliminate overhead.
 
 ---
 
@@ -29,7 +29,7 @@ Writing performant code shouldn't mean writing complicated code. QuickZone is de
 
 - **Declarative Configurations**: QuickZone lets you define behaviors, priorities, and relationships upfront in simple configuration tables, drastically reducing boilerplate and keeping your scripts clean.
 
-- **Lifecycle Cleanups**: The `observe` pattern brings modern state management to spatial tracking. Return a function when a player enters, and it runs automatically when they exit.
+- **Lifecycle Cleanups**: The `.observe()` pattern brings modern state management to spatial tracking. Return a function when a player enters, and it runs automatically when they exit.
 
 ---
 
@@ -40,7 +40,7 @@ QuickZone focuses on how data is laid out in memory based on DOD principles.
 
 - **Stable Memory**: By using flat arrays and object pooling, QuickZone generates almost no garbage during runtime. This prevents lag spikes caused by the GC.
 
-- **Zero-Allocation Iterators**: QuickZone provides generators like `iterZonesOfPlayers()` and `iterEntitiesInside()`. These generator functions super fast and allocate no memory, making QuickZone a perfect fit for Entity Component System systems.
+- **Zero-Allocation Iterators**: QuickZone provides generators like `iterEntitiesInside()`. These generator functions are fast and allocate no memory, making QuickZone a great fit for ECS architectures.
 
 ---
 
@@ -53,7 +53,7 @@ QuickZone moves away from monolithic, instance-bound logic in favor of a Group-O
 A Group is a collection of entities that share logical categorization. An entity can be part of multiple groups at the same time.
 
 #### Observers
-Observers act as the logic bridge. They subscribe to Groups and are attach by Zones, creating a many-to-many relationship that keeps game logic decoupled and clean. Performance can be configured per Observer, like setting the update rate in Hz or the precision, i.e. the minimum distance threshold to perform a spatial query, in studs. This prevents wasting CPU cycles checking a slow-moving NPC, for example.
+Observers act as the logic bridge. They subscribe to Groups and are attached to Zones, creating a many-to-many relationship that keeps game logic decoupled and clean. Performance can be configured per Observer, like setting the update rate in Hz or the precision, i.e. the minimum distance threshold to perform a spatial query, in studs. This prevents wasting CPU cycles checking a slow-moving NPC, for example.
 
 Because Observers are decoupled from the physics engine, they can aggregate spatial data. Tracking an entire Group costs no additional spatial queries. And using `observeGroup()`, an Observer can fire an event when the first member of a Group enters a zone, and clean up when the last member leaves. 
 
