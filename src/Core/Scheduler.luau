@@ -199,24 +199,27 @@ local function processZoneHit(zoneId: number)
 	end
 
 	for _, observerId in observers do
-		if
-			ctx_linkedObservers[observerId]
-			and observerEnabled[observerId] ~= false
-			and not ctx_candidatePriority[observerId]
-		then
-			local pri = observerPriorityMap[observerId] or 0
+		if ctx_linkedObservers[observerId] and observerEnabled[observerId] ~= false then
+			local currentPriority = ctx_candidatePriority[observerId]
+			local priority = observerPriorityMap[observerId] or 0
 
-			if not ctx_candidatePriority[observerId] then
+			if not currentPriority then -- First hit
 				ctx_cCount += 1
 				ctx_candidateList[ctx_cCount] = observerId
 				ctx_candidateIndex[observerId] = zoneId
-				ctx_candidatePriority[observerId] = pri
+				ctx_candidatePriority[observerId] = priority
 
-				if pri > ctx_highestWin then
-					ctx_highestWin = pri
+				if priority > ctx_highestWin then
+					ctx_highestWin = priority
 				end
-			elseif ctx_currentMemberships[observerId] == zoneId then
-				-- Hold onto the zone for transitions
+			elseif priority > currentPriority then -- Override previous hits
+				ctx_candidateIndex[observerId] = zoneId
+				ctx_candidatePriority[observerId] = priority
+
+				if priority > ctx_highestWin then
+					ctx_highestWin = priority
+				end
+			elseif priority == currentPriority and ctx_currentMemberships[observerId] == zoneId then -- Sticky behavior
 				ctx_candidateIndex[observerId] = zoneId
 			end
 		end
@@ -235,14 +238,19 @@ local function queryCallbackDynamic(zoneId: number)
 	end
 end
 
-local function fireCallback(callbacks, entity, zone, safety)
+local function fireCallback(
+	callbacks: { (Types.Entity, Types.Zone) -> () },
+	entity: any,
+	zone: Types.Zone,
+	safety: boolean
+)
 	if safety then
-		for _, cb in callbacks do
-			task.spawn(cb, entity, zone)
+		for _, callback in callbacks do
+			task.spawn(callback, entity, zone)
 		end
 	else
-		for _, cb in callbacks do
-			cb(entity, zone)
+		for _, callback in callbacks do
+			callback(entity, zone)
 		end
 	end
 end
@@ -348,21 +356,21 @@ function Scheduler.update(dt: number)
 			local data = entityData[entity] :: Types.EntityData
 
 			-- Strategy
-			local pos
+			local position
 			local strategy = data.strategy
 			if strategy == STRAT_POS then
-				pos = (entity :: BasePart).Position
+				position = (entity :: BasePart).Position
 			elseif strategy == STRAT_WORLD then
-				pos = (entity :: Attachment).WorldPosition
+				position = (entity :: Attachment).WorldPosition
 			elseif strategy == STRAT_CFRAME then
-				pos = (entity :: BasePart).CFrame.Position
+				position = (entity :: BasePart).CFrame.Position
 			elseif strategy == STRAT_TRANSFORM then
-				pos = (entity :: any).Transform.Position
+				position = (entity :: any).Transform.Position
 			elseif strategy == STRAT_PRIM then
 				local prim = (entity :: Model).PrimaryPart
-				pos = prim and prim.Position or (entity :: Model):GetPivot().Position
+				position = prim and prim.Position or (entity :: Model):GetPivot().Position
 			elseif strategy == STRAT_PIVOT then
-				pos = (entity :: any):GetPivot().Position
+				position = (entity :: any):GetPivot().Position
 			end
 
 			local needsStatic = data.needsStatic
@@ -373,17 +381,17 @@ function Scheduler.update(dt: number)
 				or (needsStatic and data.staticVersion ~= staticVersion)
 
 			if not shouldCheck then
-				local lp = data.lastPosition
-				local dx = pos.X - lp.X
-				local dy = pos.Y - lp.Y
-				local dz = pos.Z - lp.Z
+				local lastPosition = data.lastPosition
+				local dx = position.X - lastPosition.X
+				local dy = position.Y - lastPosition.Y
+				local dz = position.Z - lastPosition.Z
 				if (dx * dx + dy * dy + dz * dz) >= data.precisionSq then
 					shouldCheck = true
 				end
 			end
 
 			if shouldCheck then
-				data.lastPosition = pos
+				data.lastPosition = position
 				data.dynamicVersion = dynamicVersion
 				data.logicVersion = logicVersion
 				data.staticVersion = staticVersion
@@ -391,18 +399,16 @@ function Scheduler.update(dt: number)
 				ctx_linkedObservers = entityToObservers[entity]
 				ctx_currentMemberships = data.activeObserverMemberships
 
-				ctx_pos = pos
+				ctx_pos = position
 				ctx_cCount = 0
 				ctx_highestWin = -math.huge
 
-				local ref = entityToReference[entity] or entity
-
 				if needsDynamic then
-					queryPoint(dynamicTree, pos, queryCallbackDynamic)
+					queryPoint(dynamicTree, position, queryCallbackDynamic)
 				end
 
 				if needsStatic then
-					queryPoint(staticTree, pos, queryCallbackStatic)
+					queryPoint(staticTree, position, queryCallbackStatic)
 				end
 
 				local current = data.activeObserverMemberships
@@ -425,21 +431,22 @@ function Scheduler.update(dt: number)
 					end
 
 					local safety = observerSafety[observerId]
-					local z = zoneIdToZoneObj[oldZoneId]
-					fireCallback(cbs, ref, z, safety)
+					local zone = zoneIdToZoneObj[oldZoneId]
+					local reference = entityToReference[entity] or entity
+					fireCallback(cbs, reference, zone, safety)
 				end
 
 				-- Entries & Transitions
 				for i = 1, ctx_cCount do
 					local observerId = ctx_candidateList[i]
-					local pri = ctx_candidatePriority[observerId]
+					local priority = ctx_candidatePriority[observerId]
 					local zoneIdx = ctx_candidateIndex[observerId]
 
 					ctx_candidatePriority[observerId] = nil
 					ctx_candidateIndex[observerId] = nil
 					ctx_candidateList[i] = nil
 
-					if pri < ctx_highestWin then
+					if priority < ctx_highestWin then
 						continue
 					end
 
@@ -460,24 +467,18 @@ function Scheduler.update(dt: number)
 							continue
 						end
 
-						local z = zoneIdToZoneObj[zoneIdx]
-						fireCallback(cbs, ref, z, safety)
+						local zone = zoneIdToZoneObj[zoneIdx]
+						local reference = entityToReference[entity] or entity
+						fireCallback(cbs, reference, zone, safety)
 					else -- Transition
 						local cbs = observerTransitionedCallbacks[observerId]
 						if not cbs then
 							continue
 						end
 
-						local newZoneObj = zoneIdToZoneObj[zoneIdx]
-						if safety then
-							for _, cb in cbs do
-								task.spawn(cb, ref, newZoneObj)
-							end
-						else
-							for _, cb in cbs do
-								cb(ref, newZoneObj)
-							end
-						end
+						local zone = zoneIdToZoneObj[zoneIdx]
+						local reference = entityToReference[entity] or entity
+						fireCallback(cbs, reference, zone, safety)
 					end
 				end
 			end
