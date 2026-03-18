@@ -224,6 +224,8 @@ export type Zones = {
 	setMetadata: (self: Zones, metadata: any?) -> Zones,
 	contains: (self: Zones, zone: Zone) -> boolean,
 	iterZones: (self: Zones) -> () -> Zone?,
+	getReferences: (self: Zones) -> { BasePart | Attachment | Bone },
+	iterReferences: (self: Zones) -> () -> ((BasePart | Attachment | Bone)?, Zone?),
 
 	onDestroy: (self: Zones, callback: () -> ()) -> () -> (),
 	destroy: (self: Zones) -> (),

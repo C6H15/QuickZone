@@ -246,6 +246,50 @@ function Zones.iterZones(self: Types.InternalZones): () -> Types.Zone?
 end
 
 --[=[ 
+    Returns an array of all references from the underlying zones.
+
+    @method getReferences
+    @within Zones
+    @return { BasePart | Attachment | Bone }
+]=]
+function Zones.getReferences(self: Types.InternalZones): { BasePart | Attachment | Bone }
+	local results = {}
+	for zone, _ in self.zones do
+		local ref = zone:getReference()
+		if ref then
+			table.insert(results, ref)
+		end
+	end
+	return results
+end
+
+--[=[
+    Returns a zero-allocation iterator for all references within this group of zones.
+    Yields both the reference and the specific Zone it belongs to.
+
+    @method iterReferences
+    @within Zones
+    @return () -> ((BasePart | Attachment | Bone)?, Zone?)
+]=]
+function Zones.iterReferences(self: Types.InternalZones): () -> ((BasePart | Attachment | Bone)?, Types.Zone?)
+	local currentZone = nil
+
+	return function()
+		while true do
+			currentZone = next(self.zones, currentZone)
+			if not currentZone then
+				return nil
+			end
+
+			local ref = currentZone:getReference()
+			if ref then
+				return ref, currentZone
+			end
+		end
+	end
+end
+
+--[=[ 
 	Fires when `destroy()` is called on zones
 
 	@tag Event
