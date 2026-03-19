@@ -23,7 +23,7 @@ local State = {
 	dynamicVersion = 1,
 	logicVersion = 1,
 
-	groups = {} :: { [number]: Types.InternalGroup<any> },
+	groups = {} :: { [number]: Types.InternalGroup },
 	groupToObservers = {} :: { [number]: { [number]: boolean } },
 	groupEntityCleanups = {} :: { [number]: { [any]: RBXScriptConnection } },
 	entityToGroups = {} :: { [Types.Entity]: { [number]: boolean } },
@@ -52,7 +52,7 @@ local State = {
 	autoSyncZones = {} :: { [number]: Types.InternalZone },
 	zoneAttachedObservers = {} :: { [number]: { number } },
 	zoneIdToZoneObj = {} :: { [number]: Types.InternalZone },
-	observerIdToObserverObj = {} :: { [number]: Types.InternalObserver<any> },
+	observerIdToObserverObj = {} :: { [number]: Types.InternalObserver },
 }
 
 return State

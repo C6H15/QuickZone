@@ -129,15 +129,14 @@ end
 local Zone = {}
 Zone.__index = Zone
 
-local function newZoneInternal(
+local function newZoneInternal<Z>(
 	cframe: CFrame,
 	size: Vector3,
 	shapeType: number,
-	reference: (BasePart | Attachment | Bone)?,
+	reference: Z,
 	isDynamic: boolean,
 	metadata: any?,
-	autoSync: boolean,
-	observers: { Types.Observer<any> }?
+	autoSync: boolean
 ): Types.Zone
 	local id = State.nextZoneId
 	State.nextZoneId += 1
@@ -155,7 +154,7 @@ local function newZoneInternal(
 		State.pendingStaticRebuild = true
 	end
 
-	local self: Types.InternalZone = setmetatable({
+	local self: Types.InternalZone<Z> = setmetatable({
 		id = id,
 		reference = reference,
 		dynamic = isDynamic,
@@ -166,16 +165,6 @@ local function newZoneInternal(
 
 	if autoSync then
 		self:setAutoSync(true)
-	end
-
-	if observers then
-		local attached = {}
-		State.zoneAttachedObservers[id] = attached
-		for _, observer in observers do
-			local observerId = (observer :: Types.InternalObserver).id
-			table.insert(attached, observerId)
-			updateObserverZoneCount(observerId, isDynamic, 1)
-		end
 	end
 
 	return self
@@ -204,19 +193,18 @@ end
 	:::
 
 	@tag Constructor
-	@param config { cframe: CFrame, size: Vector3, shape: Types.ShapeType?, reference: (BasePart | Attachment | Bone)?, isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Types.Observer }? }?
+	@param config { cframe: CFrame, size: Vector3, shape: Types.ShapeType?, reference: (BasePart | Attachment | Bone)?, isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
 	@return Zone
 ]=]
-function Zone.new(config: {
+function Zone.new<Z>(config: {
 	cframe: CFrame,
 	size: Vector3,
 	shape: Types.ShapeType?,
-	reference: (BasePart | Attachment | Bone)?,
+	reference: Z?,
 	isDynamic: boolean?,
 	metadata: any?,
 	autoSync: boolean?,
-	observers: { Types.Observer<any> }?,
-}): Types.Zone
+}): Types.Zone<Z>
 	local shapeType = Enum.PartType.Block.Value
 
 	if config.shape then
@@ -235,8 +223,7 @@ function Zone.new(config: {
 		config.reference,
 		config.isDynamic or false,
 		config.metadata,
-		config.autoSync or false,
-		config.observers
+		config.autoSync or false
 	)
 end
 
@@ -261,7 +248,7 @@ end
 
 	@tag Constructor
 	@param part BasePart -- The part to derive the zone from.
-	@param config { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Types.Observer }? }?
+	@param config { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
 	@return Zone
 ]=]
 function Zone.fromPart(
@@ -270,9 +257,8 @@ function Zone.fromPart(
 		isDynamic: boolean?,
 		metadata: any?,
 		autoSync: boolean?,
-		observers: { Types.Observer<any> }?,
 	}?
-): Types.Zone
+): Types.Zone<BasePart>
 	local shapeId = Enum.PartType.Block.Value
 	if part:IsA('Part') then
 		shapeId = part.Shape.Value
@@ -285,9 +271,8 @@ function Zone.fromPart(
 	local isDynamic = config and config.isDynamic or false
 	local metadata = config and config.metadata
 	local autoSync = config and config.autoSync or false
-	local observers = config and config.observers
 
-	return newZoneInternal(part.CFrame, part.Size, shapeId, part, isDynamic, metadata, autoSync, observers)
+	return newZoneInternal(part.CFrame, part.Size, shapeId, part, isDynamic, metadata, autoSync)
 end
 
 --[=[
@@ -296,7 +281,7 @@ end
 	@tag Constructor
 	@within Zone
 	@param parts { BasePart }
-	@param config { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Observer }? }?
+	@param config { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
 	@return Zones
 ]=]
 function Zone.fromParts(
@@ -305,9 +290,8 @@ function Zone.fromParts(
 		isDynamic: boolean?,
 		metadata: any?,
 		autoSync: boolean?,
-		observers: { Types.Observer<any> }?,
 	}?
-): Types.Zones
+): Types.Zones<BasePart>
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
 	local autoSync = if config and config.autoSync ~= nil then config.autoSync else false
@@ -317,12 +301,6 @@ function Zone.fromParts(
 		metadata = metadata,
 		autoSync = autoSync,
 	}) :: Types.InternalZones
-
-	if config and config.observers then
-		for _, obs in config.observers do
-			zones:attach(obs)
-		end
-	end
 
 	for _, part in parts do
 		if part:IsA('BasePart') then
@@ -345,7 +323,7 @@ end
 	@tag Constructor
 	@within Zone
 	@param parent Instance
-	@param config { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Types.Observer }? }?
+	@param config { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
 	@return Zones
 ]=]
 function Zone.fromChildren(
@@ -354,9 +332,8 @@ function Zone.fromChildren(
 		isDynamic: boolean?,
 		metadata: any?,
 		autoSync: boolean?,
-		observers: { Types.Observer<any> }?,
 	}?
-): Types.Zones
+): Types.Zones<BasePart>
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
 	local autoSync = if config and config.autoSync ~= nil then config.autoSync else false
@@ -366,12 +343,6 @@ function Zone.fromChildren(
 		metadata = metadata,
 		autoSync = autoSync,
 	}) :: Types.InternalZones
-
-	if config and config.observers then
-		for _, obs in config.observers do
-			zones:attach(obs)
-		end
-	end
 
 	local instanceToZone = {} :: { [Instance]: Types.Zone }
 
@@ -425,7 +396,7 @@ end
 	@tag Constructor
 	@within Zone
 	@param parent Instance -- The container (Model, Folder, etc.) to search through.
-	@param config { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Types.Observer }? }?
+	@param config { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
 	@return Zones
 ]=]
 function Zone.fromDescendants(
@@ -434,9 +405,8 @@ function Zone.fromDescendants(
 		isDynamic: boolean?,
 		metadata: any?,
 		autoSync: boolean?,
-		observers: { Types.Observer<any> }?,
 	}?
-): Types.Zones
+): Types.Zones<BasePart>
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
 	local autoSync = if config and config.autoSync ~= nil then config.autoSync else false
@@ -446,12 +416,6 @@ function Zone.fromDescendants(
 		metadata = metadata,
 		autoSync = autoSync,
 	}) :: Types.InternalZones
-
-	if config and config.observers then
-		for _, obs in config.observers do
-			zones:attach(obs)
-		end
-	end
 
 	local instanceToZone = {} :: { [Instance]: Types.Zone }
 
@@ -498,7 +462,7 @@ end
 	@tag Constructor
 	@within Zone
 	@param tag string
-	@param config { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Observer }? }?
+	@param config { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
 	@return Zones
 ]=]
 function Zone.fromTag(
@@ -507,9 +471,8 @@ function Zone.fromTag(
 		isDynamic: boolean?,
 		metadata: any?,
 		autoSync: boolean?,
-		observers: { Types.Observer<any> }?,
 	}?
-): Types.Zones
+): Types.Zones<BasePart>
 	-- Create Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
@@ -520,12 +483,6 @@ function Zone.fromTag(
 		metadata = metadata,
 		autoSync = autoSync,
 	}) :: Types.InternalZones
-
-	if config and config.observers then
-		for _, obs in config.observers do
-			zones:attach(obs)
-		end
-	end
 
 	-- Handle dynamic creation and destruction of zones based on tag
 	local watchingInstances = {} :: { [Instance]: RBXScriptConnection }
@@ -591,23 +548,7 @@ function Zone.fromTag(
 	return zones
 end
 
---[=[ 
-	Attaches an Observer to this zone. The observer will begin 
-	monitoring this area for entity overlaps.
-
-	```lua
-	-- You are also able to chain calls
-	zone:attach(damageObserver)
-		:attach(visualObserver)
-		:attach(soundObserver)
-	```
-
-	@method attach
-	@within Zone
-	@param observer Observer -- The observer to link.
-	@return Zone
-]=]
-function Zone.attach(self: Types.InternalZone, observer: Types.InternalObserver<any>): Types.Zone
+function Zone.attach(self: Types.InternalZone, observer: Types.InternalObserver): Types.Zone
 	local attached = State.zoneAttachedObservers[self.id] or {}
 	State.zoneAttachedObservers[self.id] = attached
 
@@ -625,15 +566,7 @@ function Zone.attach(self: Types.InternalZone, observer: Types.InternalObserver<
 	return self
 end
 
---[=[ 
-	Detaches observer from this zone.
-
-	@method detach
-	@within Zone
-	@param observer Observer -- The observer to unlink.
-	@return Zone
-]=]
-function Zone.detach(self: Types.InternalZone, observer: Types.InternalObserver<any>): Types.Zone
+function Zone.detach(self: Types.InternalZone, observer: Types.InternalObserver): Types.Zone
 	local attached = State.zoneAttachedObservers[self.id]
 	if not attached then
 		return self

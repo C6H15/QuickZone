@@ -39,7 +39,7 @@ end
 	@param observer Observer
 	@return Zones
 ]=]
-function Zones.attach(self: Types.InternalZones, observer: Types.InternalObserver<any>): Types.Zones
+function Zones.attach(self: Types.InternalZones, observer: any): Types.Zones
 	if self.observers[observer] then
 		return self
 	end
@@ -50,7 +50,7 @@ function Zones.attach(self: Types.InternalZones, observer: Types.InternalObserve
 	end)
 
 	for zone, _ in self.zones do
-		zone:attach(observer)
+		observer:attach(zone)
 	end
 
 	return self
@@ -64,7 +64,7 @@ end
 	@param observer Observer
 	@return Zones
 ]=]
-function Zones.detach(self: Types.InternalZones, observer: Types.InternalObserver<any>): Types.Zones
+function Zones.detach(self: Types.InternalZones, observer: any): Types.Zones
 	if not self.observers[observer] then
 		return self
 	end
@@ -77,8 +77,9 @@ function Zones.detach(self: Types.InternalZones, observer: Types.InternalObserve
 	end
 
 	for zone, _ in self.zones do
-		zone:detach(observer)
+		observer:detach(zone)
 	end
+
 	return self
 end
 
@@ -374,7 +375,7 @@ function Zones.add(self: Types.InternalZones, zone: Types.Zone)
 	end)
 
 	for observer, _ in self.observers do
-		zone:attach(observer)
+		observer:attach(zone)
 	end
 end
 
@@ -392,7 +393,7 @@ function Zones.remove(self: Types.InternalZones, zone: Types.Zone)
 	end
 
 	for observer, _ in self.observers do
-		zone:detach(observer)
+		observer:detach(zone)
 	end
 end
 
