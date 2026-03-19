@@ -15,8 +15,6 @@ local discoObserver = QuickZone.Observer.new({
 	updateRate = 5,
 })
 
-discoObserver:attach(discoZone)
-
 discoObserver:observeGroup(function(_, zone)
 	local part = zone:getReference()
 	if not (part and part:IsA('BasePart')) then
