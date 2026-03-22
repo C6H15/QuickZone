@@ -2,6 +2,14 @@
 --!optimize 2
 --!strict
 
+local BoxIntersection = require(script.Parent.BoxIntersection)
+
+local boxInCylinder = BoxIntersection.BoxInCylinder
+local boxInBox = BoxIntersection.BoxInBox
+local boxInSphere = BoxIntersection.BoxInSphere
+local boxInWedge = BoxIntersection.BoxInWedge
+local boxInCornerWedge = BoxIntersection.BoxInCornerWedge
+
 local BLOCK_SHAPE_VALUE = Enum.PartType.Block.Value
 local BALL_SHAPE_VALUE = Enum.PartType.Ball.Value
 local CYLINDER_SHAPE_VALUE = Enum.PartType.Cylinder.Value
@@ -114,6 +122,35 @@ function Geometry.isPointInShape(point: Vector3, cframe: CFrame, halfSize: Vecto
 		end
 		local absolute_point = vector.abs(localPoint)
 		return vector.min(absolute_point, halfSize) == absolute_point
+	end
+
+	return false
+end
+
+function Geometry.IsBoxInShape(
+	boxCFrame: CFrame,
+	boxHalfSize: Vector3,
+	shapeCFrame: CFrame,
+	shapeHalfSize: Vector3,
+	shapeType: number
+): boolean
+	local boxSize = boxHalfSize * 2
+	local shapeSize = shapeHalfSize * 2
+
+	if shapeType == BLOCK_SHAPE_VALUE then
+		return boxInBox(boxCFrame, boxSize, shapeCFrame, shapeSize)
+	elseif shapeType == CYLINDER_SHAPE_VALUE then
+		local cylinderPosition = shapeCFrame.Position
+		local cylinderAxis = shapeCFrame.RightVector
+		local cylinderHeight = shapeSize.X
+		local cylinderRadius = shapeHalfSize.Y
+		return boxInCylinder(boxCFrame, boxSize, cylinderPosition, cylinderAxis, cylinderHeight, cylinderRadius)
+	elseif shapeType == BALL_SHAPE_VALUE then
+		return boxInSphere(boxCFrame, boxSize, shapeCFrame.Position, shapeHalfSize.X)
+	elseif shapeType == WEDGE_SHAPE_VALUE then
+		return boxInWedge(boxCFrame, boxSize, shapeCFrame, shapeSize)
+	elseif shapeType == CORNER_WEDGE_SHAPE_VALUE then
+		return boxInCornerWedge(boxCFrame, boxSize, shapeCFrame, shapeSize)
 	end
 
 	return false

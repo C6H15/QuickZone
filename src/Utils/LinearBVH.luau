@@ -190,4 +190,34 @@ function LinearBVH.queryPoint(tree: Types.Tree, point: Vector3, callback: (id: n
 	end
 end
 
+function LinearBVH.queryBox(tree: Types.Tree, boxMin: Vector3, boxMax: Vector3, callback: (id: number) -> ())
+	local nodes = tree.nodes
+	local count = tree.count
+
+	local bMinX, bMinY, bMinZ = boxMin.X, boxMin.Y, boxMin.Z
+	local bMaxX, bMaxY, bMaxZ = boxMax.X, boxMax.Y, boxMax.Z
+
+	local index = 1
+	while index <= count do
+		local node = nodes[index]
+		local min, max = node.min, node.max
+		if
+			bMaxX >= min.X
+			and bMinX <= max.X
+			and bMaxY >= min.Y
+			and bMinY <= max.Y
+			and bMaxZ >= min.Z
+			and bMinZ <= max.Z
+		then
+			index += 1
+			local nodeId = node.id
+			if nodeId > 0 then
+				callback(nodeId)
+			end
+		else
+			index = node.skipIndex
+		end
+	end
+end
+
 return LinearBVH
