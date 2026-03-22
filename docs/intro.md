@@ -209,7 +209,7 @@ end
 local function gravitySystem(dt)
     -- Instead of creating a BodyForce, we apply continuous math statelessly.
     for player, zone in gravityObserver:iterEntitiesInside() do
-        local character = localPlayer.Character
+        local character = player.Character
         local hrp = character and character:FindFirstChild('HumanoidRootPart')
         if not hrp then continue end
 
