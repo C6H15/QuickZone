@@ -99,12 +99,13 @@ Observer.__index = Observer
 
 	```lua
 	local observer = QuickZone.Observer.new({
+		groups = { enemyGroup, playerGroup } -- Immediately subscribe to these groups
+		zones = { damageZone } -- Immediately subscribe to these zones
 		priority = 20, -- The priority value is used to resolve overlaps
 		updateRate = 20, -- Check at 20Hz
 		precision = 0.5, -- Ignore movement smaller than 0.5 studs
 		enabled = false, -- Observer will not start processing spatial checks
 		safety = false, -- Do not wrap callbacks in task.spawn
-		groups = { enemyGroup, playerGroup } -- Immediately subscribe to these groups
 	})
 	```
 
@@ -117,19 +118,19 @@ Observer.__index = Observer
 	@param config { groups: { Types.Group }?, zones: { Types.Zone | Types.Zones }?, priority: number?, updateRate: number?, precision: number?, enabled: boolean?, safety: boolean? }?
 	@return Observer
 ]=]
-function Observer.new<T, Z>(config: {
+function Observer.new<T>(config: {
 	groups: { Types.Group<T> }?,
-	zones: { Types.Zone<Z> | Types.Zones<Z> },
+	zones: { Types.Zone | Types.Zones },
 	priority: number?,
 	updateRate: number?,
 	precision: number?,
 	enabled: boolean?,
 	safety: boolean?,
-}?): Types.Observer<T, Z>
+}?): Types.Observer
 	local id = State.nextObserverId
 	State.nextObserverId += 1
 
-	local self: Types.InternalObserver<T, Z> = setmetatable({
+	local self: Types.InternalObserver<T> = setmetatable({
 		id = id,
 	}, Observer) :: any
 

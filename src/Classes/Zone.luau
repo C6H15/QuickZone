@@ -129,11 +129,11 @@ end
 local Zone = {}
 Zone.__index = Zone
 
-local function newZoneInternal<Z>(
+local function newZoneInternal(
 	cframe: CFrame,
 	size: Vector3,
 	shapeType: number,
-	reference: Z,
+	reference: (BasePart | Attachment | Bone)?,
 	isDynamic: boolean,
 	metadata: any?,
 	autoSync: boolean
@@ -154,7 +154,7 @@ local function newZoneInternal<Z>(
 		State.pendingStaticRebuild = true
 	end
 
-	local self: Types.InternalZone<Z> = setmetatable({
+	local self: Types.InternalZone = setmetatable({
 		id = id,
 		reference = reference,
 		dynamic = isDynamic,
@@ -196,15 +196,15 @@ end
 	@param config { cframe: CFrame, size: Vector3, shape: Types.ShapeType?, reference: (BasePart | Attachment | Bone)?, isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
 	@return Zone
 ]=]
-function Zone.new<Z>(config: {
+function Zone.new(config: {
 	cframe: CFrame,
 	size: Vector3,
 	shape: Types.ShapeType?,
-	reference: Z?,
+	reference: (BasePart | Attachment | Bone)?,
 	isDynamic: boolean?,
 	metadata: any?,
 	autoSync: boolean?,
-}): Types.Zone<Z>
+}): Types.Zone
 	local shapeType = Enum.PartType.Block.Value
 
 	if config.shape then
@@ -258,7 +258,7 @@ function Zone.fromPart(
 		metadata: any?,
 		autoSync: boolean?,
 	}?
-): Types.Zone<BasePart>
+): Types.Zone
 	local shapeId = Enum.PartType.Block.Value
 	if part:IsA('Part') then
 		shapeId = part.Shape.Value
@@ -291,7 +291,7 @@ function Zone.fromParts(
 		metadata: any?,
 		autoSync: boolean?,
 	}?
-): Types.Zones<BasePart>
+): Types.Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
 	local autoSync = if config and config.autoSync ~= nil then config.autoSync else false
@@ -333,7 +333,7 @@ function Zone.fromChildren(
 		metadata: any?,
 		autoSync: boolean?,
 	}?
-): Types.Zones<BasePart>
+): Types.Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
 	local autoSync = if config and config.autoSync ~= nil then config.autoSync else false
@@ -406,7 +406,7 @@ function Zone.fromDescendants(
 		metadata: any?,
 		autoSync: boolean?,
 	}?
-): Types.Zones<BasePart>
+): Types.Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
 	local autoSync = if config and config.autoSync ~= nil then config.autoSync else false
@@ -472,7 +472,7 @@ function Zone.fromTag(
 		metadata: any?,
 		autoSync: boolean?,
 	}?
-): Types.Zones<BasePart>
+): Types.Zones
 	-- Create Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
