@@ -1,14 +1,19 @@
 --!strict
 
 local Players = game:GetService('Players')
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
 local RunService = game:GetService('RunService')
 
+local Log = require(ReplicatedStorage.QuickZone.Utils.Log)
 local Config = require(script.Parent.Parent.Config)
 local State = require(script.Parent.Parent.Core.State)
 local Types = require(script.Parent.Parent.Types)
 local Geometry = require(script.Parent.Parent.Utils.Geometry)
 
 local isPointInShape = Geometry.isPointInShape
+
+local hasAttachedMap = {} :: { [number]: boolean }
+local hasSubscribedMap = {} :: { [number]: boolean }
 
 local dirtyProfiles = State.dirtyProfiles
 local dirtyTopology = State.dirtyTopology
@@ -148,6 +153,9 @@ function Observer.new<T>(config: {
 	State.observerStaticCount[id] = 0
 	State.observerDynamicCount[id] = 0
 
+	hasAttachedMap[id] = false
+	hasSubscribedMap[id] = false
+
 	if config and config.zones then
 		for _, zone in config.zones do
 			self:attach(zone)
@@ -160,30 +168,27 @@ function Observer.new<T>(config: {
 		end
 	end
 
-	task.defer(function()
-		if not State.observerIdToObserverObj[id] then
-			return
-		end
+	local missingZones = not hasAttachedMap[id]
+	local missingGroups = not hasSubscribedMap[id]
 
-		if not self:isEnabled() then
-			return
-		end
+	if missingZones or missingGroups then
+		local creationTrace = debug.traceback('', 2)
 
-		local hasZones = #self:getZones() > 0
-		local hasGroups = #self:getGroups() > 0
+		task.defer(function()
+			-- Ensure the observer wasn't destroyed or disabled
+			if not State.observerIdToObserverObj[id] or not self:isEnabled() then
+				return
+			end
 
-		if not hasZones then
-			warn(
-				`[QuickZone] Observer {id} has no attached zones. It will not detect spatial queries until a zone is attached.`
-			)
-		end
-
-		if not hasGroups then
-			warn(
-				`[QuickZone] Observer {id} has no subscribed groups. It will not track any entities until a group is subscribed.`
-			)
-		end
-	end)
+			-- Check if :attach() or :subscribe() was used instead
+			if missingZones and not hasAttachedMap[id] then
+				Log.warn('Observer %d has no attached zones. It will not detect spatial queries.', creationTrace, id)
+			end
+			if missingGroups and not hasSubscribedMap[id] then
+				Log.warn('Observer %d has no subscribed groups. It will not track any entities.', creationTrace, id)
+			end
+		end)
+	end
 
 	return self
 end
@@ -202,6 +207,8 @@ end
 	@return Observer
 ]=]
 function Observer.subscribe(self: Types.InternalObserver, group: Types.InternalGroup): Types.Observer
+	hasSubscribedMap[self.id] = true
+
 	local groupId = group.id
 	if not State.groupToObservers[groupId] then
 		State.groupToObservers[groupId] = {}
@@ -253,6 +260,7 @@ end
 	@return Observer
 ]=]
 function Observer.attach(self: Types.InternalObserver, zone: any)
+	hasAttachedMap[self.id] = true
 	zone:attach(self)
 	return self
 end
@@ -533,7 +541,9 @@ end
 	@return () -> () -- Disconnect function
 ]=]
 function Observer.observeLocalPlayer(self: Types.InternalObserver, callback: (Types.Zone) -> (() -> ())?): () -> ()
-	assert(IS_CLIENT, '[QuickZone] Observer:observeLocalPlayer can only be called on the Client.')
+	if not IS_CLIENT then
+		Log.fatal('Observer:observeLocalPlayer can only be called on the Client.', nil)
+	end
 
 	local cleanups = {} :: { [Types.Entity]: () -> () }
 	local activeIds = {} :: { [Types.Entity]: number }
@@ -615,7 +625,10 @@ end
 	@return () -> () -- Disconnect function
 ]=]
 function Observer.onLocalPlayerEnter(self: Types.InternalObserver, callback: (Types.Zone) -> ()): () -> ()
-	assert(IS_CLIENT, '[QuickZone] Observer:onLocalPlayerEnter can only be called on the Client.')
+	if not IS_CLIENT then
+		Log.fatal('Observer:onLocalPlayerEnter can only be called on the Client.', nil)
+	end
+
 	return self:onEnter(function(reference, zone)
 		if reference == Players.LocalPlayer then
 			callback(zone)
@@ -635,7 +648,10 @@ end
 	@return () -> () -- Disconnect function
 ]=]
 function Observer.onLocalPlayerExit(self: Types.InternalObserver, callback: (Types.Zone) -> ()): () -> ()
-	assert(IS_CLIENT, '[QuickZone] Observer:onLocalPlayerExit can only be called on the Client.')
+	if not IS_CLIENT then
+		Log.fatal('Observer:onLocalPlayerExit can only be called on the Client.', nil)
+	end
+
 	return self:onExit(function(reference, zone)
 		if reference == Players.LocalPlayer then
 			callback(zone)
@@ -879,7 +895,9 @@ end
 	@return () -> () -- Disconnect function
 ]=]
 function Observer.onLocalPlayerTransition(self: Types.InternalObserver, callback: (Types.Zone) -> ()): () -> ()
-	assert(IS_CLIENT, '[QuickZone] Observer:onLocalPlayerTransition can only be called on the Client.')
+	if not IS_CLIENT then
+		Log.fatal('Observer:onLocalPlayerTransition can only be called on the Client.', nil)
+	end
 
 	return self:onTransition(function(reference, newZone)
 		local player = State.entityToReference[reference] or reference
@@ -965,7 +983,10 @@ end
 	@return Observer
 ]=]
 function Observer.setUpdateRate(self: Types.InternalObserver, hz: number): Types.Observer
-	assert(hz >= 0, '[QuickZone] updateRate must be non-negative')
+	if hz < 0 then
+		Log.fatal('updateRate must be non-negative.', nil)
+	end
+
 	State.observerUpdateRate[self.id] = hz
 	updateAllEntitiesForObserver(self.id)
 	return self
@@ -980,7 +1001,10 @@ end
 	@return Observer
 ]=]
 function Observer.setPrecision(self: Types.InternalObserver, n: number): Types.Observer
-	assert(n >= 0, '[QuickZone] precision must be non-negative')
+	if n < 0 then
+		Log.fatal('precision must be non-negative.', nil)
+	end
+
 	State.observerPrecisionSq[self.id] = n ^ 2
 	updateAllEntitiesForObserver(self.id)
 	return self
@@ -1578,6 +1602,9 @@ function Observer.destroy(self: Types.InternalObserver): ()
 	State.observerPrecisionSq[id] = nil
 	State.observerStaticCount[id] = nil
 	State.observerDynamicCount[id] = nil
+
+	hasAttachedMap[id] = nil
+	hasSubscribedMap[id] = nil
 
 	State.logicVersion += 1
 	setmetatable(self :: any, nil)

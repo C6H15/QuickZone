@@ -2,8 +2,10 @@
 
 local CollectionService = game:GetService('CollectionService')
 local Players = game:GetService('Players')
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
 local RunService = game:GetService('RunService')
 
+local Log = require(ReplicatedStorage.QuickZone.Utils.Log)
 local Types = require(script.Parent.Parent.Types)
 local Config = require(script.Parent.Parent.Config)
 local State = require(script.Parent.Parent.Core.State)
@@ -293,7 +295,9 @@ end
 	@return Group
 ]=]
 function Group.localPlayer(): Types.Group<Player>
-	assert(IS_CLIENT, '[QuickZone] QuickZone.LocalPlayerGroup can only be called on the Client.')
+	if not IS_CLIENT then
+		Log.fatal('Group.localPlayer() can only be called on the Client.', nil)
+	end
 
 	local group = Group.new({ autoClean = false }) :: Types.InternalGroup<Player>
 	group.isManaged = true
@@ -322,7 +326,7 @@ end
 ]=]
 function Group.setAutoClean(self: Types.InternalGroup, enabled: boolean): Types.Group
 	if self.isManaged then
-		warn(`[QuickZone] Cannot set autoClean on a Managed Group.`)
+		Log.warn('Cannot set autoClean on a Managed Group. Ignoring request.', nil)
 		return self
 	end
 
@@ -386,7 +390,7 @@ end
 ]=]
 function Group.add(self: Types.InternalGroup, entity: any): Types.Group
 	if self.isManaged then
-		warn(`[QuickZone] Cannot manually add to a Managed Group.`)
+		Log.warn('Cannot manually add to a Managed Group. Ignoring request.', nil)
 		return self
 	end
 	return self:_add(entity)
@@ -407,7 +411,7 @@ end
 ]=]
 function Group.addBulk(self: Types.InternalGroup, entities: { any }): Types.Group
 	if self.isManaged then
-		warn(`[QuickZone] Cannot manually addBulk from a Managed Group.`)
+		Log.warn('Cannot manually addBulk to a Managed Group. Ignoring request.', nil)
 		return self
 	end
 	return self:_addBulk(entities)
@@ -423,7 +427,7 @@ end
 ]=]
 function Group.remove(self: Types.InternalGroup, entity: any): Types.Group
 	if self.isManaged then
-		warn(`[QuickZone] Cannot manually remove from a Managed Group.`)
+		Log.warn('Cannot manually remove from a Managed Group. Ignoring request.', nil)
 		return self
 	end
 	return self:_remove(entity)
@@ -439,7 +443,7 @@ end
 ]=]
 function Group.removeBulk(self: Types.InternalGroup, entities: { any }): Types.Group
 	if self.isManaged then
-		warn(`[QuickZone] Cannot manually removeBulk from a Managed Group.`)
+		Log.warn('Cannot manually removeBulk from a Managed Group. Ignoring request.', nil)
 		return self
 	end
 	return self:_removeBulk(entities)
@@ -455,7 +459,7 @@ end
 ]=]
 function Group.clear(self: Types.InternalGroup): Types.Group
 	if self.isManaged then
-		warn(`[QuickZone] Cannot clear from a Managed Group.`)
+		Log.warn('Cannot clear a Managed Group. Ignoring request.', nil)
 		return self
 	end
 	return self:_clear()
@@ -624,11 +628,10 @@ function Group._add(self: Types.InternalGroup, entity: any): Types.Group
 		end
 
 		if not strat then
-			warn(
-				string.format(
-					'[QuickZone] Invalid entity (%s). Expected BasePart, Model, Bone, Attachment, Camera, an EntityTable, or a reference to such an object.',
-					tostring(entity)
-				)
+			Log.nonFatal(
+				'Invalid entity (%s). Expected BasePart, Model, Bone, Attachment, Camera, or a valid EntityTable.',
+				nil,
+				tostring(entity)
 			)
 			State.entityToGroups[entity][self.id] = nil
 			return self

@@ -1,7 +1,9 @@
 --!strict
 
 local CollectionService = game:GetService('CollectionService')
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
 
+local Log = require(ReplicatedStorage.QuickZone.Utils.Log)
 local State = require(script.Parent.Parent.Core.State)
 local Types = require(script.Parent.Parent.Types)
 local Geometry = require(script.Parent.Parent.Utils.Geometry)
@@ -212,7 +214,7 @@ function Zone.new(config: {
 		if mapped then
 			shapeType = mapped
 		else
-			warn(`[QuickZone] Invalid shape '{config.shape}'. Defaulting to Block.`)
+			Log.warn("Invalid shape '%s'. Defaulting to Block.", nil, tostring(config.shape))
 		end
 	end
 
@@ -618,7 +620,7 @@ function Zone.setAutoSync(self: Types.InternalZone, autoSync: boolean): Types.Zo
 		if self.reference then
 			setupAutoSync(self, self.reference)
 		else
-			warn('[QuickZone] Cannot autoSync a Zone without a tracked reference.')
+			Log.warn('Cannot autoSync Zone %d without a tracked reference.', nil, self.id)
 		end
 	else
 		clearAutoSync(self)
@@ -667,7 +669,7 @@ end
 function Zone.sync(self: Types.InternalZone): Types.Zone
 	local reference = self.reference
 	if not reference then
-		warn('[QuickZone] Zone:sync failed. No reference found.')
+		Log.warn('Zone:sync failed for Zone %d. No reference found.', nil, self.id)
 		return self
 	end
 
@@ -887,7 +889,7 @@ function Zone.setShape(self: Types.InternalZone, shape: Types.ShapeType): Types.
 	if mapped then
 		shapeType = mapped
 	else
-		warn(`[QuickZone] Invalid shape '{shape}'. Defaulting to Block.`)
+		Log.warn("Invalid shape '%s'. Defaulting to Block.", nil, tostring(shape))
 	end
 
 	if self.dynamic then

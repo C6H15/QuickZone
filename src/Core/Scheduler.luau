@@ -2,8 +2,10 @@
 --!optimize 2
 --!strict
 
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
 local RunService = game:GetService('RunService')
 
+local Log = require(ReplicatedStorage.QuickZone.Utils.Log)
 local Config = require(script.Parent.Parent.Config)
 local Types = require(script.Parent.Parent.Types)
 local Geometry = require(script.Parent.Parent.Utils.Geometry)
@@ -529,7 +531,9 @@ function Scheduler.setAutoSyncRate(hz: number)
 end
 
 function Scheduler.setFrameBudget(n: number)
-	assert(n > 0, '[QuickZone] frameBudget must be greater than 0')
+	if n <= 0 then
+		Log.fatal('frameBudget must be greater than 0.', nil)
+	end
 
 	frameBudget = n
 end
