@@ -1026,9 +1026,9 @@ local function boxInCornerWedge(cframe0: CFrame, size0: Vector3, cframe1: CFrame
 end
 
 return {
-	BoxInCylinder = boxInCylinder,
-	BoxInBox = boxInBox,
-	BoxInSphere = boxInSphere,
-	BoxInWedge = boxInWedge,
-	BoxInCornerWedge = boxInCornerWedge,
+	boxInCylinder = boxInCylinder,
+	boxInBox = boxInBox,
+	boxInSphere = boxInSphere,
+	boxInWedge = boxInWedge,
+	boxInCornerWedge = boxInCornerWedge,
 }

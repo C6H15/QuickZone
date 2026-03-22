@@ -4,11 +4,11 @@
 
 local BoxIntersection = require(script.Parent.BoxIntersection)
 
-local boxInCylinder = BoxIntersection.BoxInCylinder
-local boxInBox = BoxIntersection.BoxInBox
-local boxInSphere = BoxIntersection.BoxInSphere
-local boxInWedge = BoxIntersection.BoxInWedge
-local boxInCornerWedge = BoxIntersection.BoxInCornerWedge
+local boxInCylinder = BoxIntersection.boxInCylinder
+local boxInBox = BoxIntersection.boxInBox
+local boxInSphere = BoxIntersection.boxInSphere
+local boxInWedge = BoxIntersection.boxInWedge
+local boxInCornerWedge = BoxIntersection.boxInCornerWedge
 
 local BLOCK_SHAPE_VALUE = Enum.PartType.Block.Value
 local BALL_SHAPE_VALUE = Enum.PartType.Ball.Value
@@ -127,7 +127,7 @@ function Geometry.isPointInShape(point: Vector3, cframe: CFrame, halfSize: Vecto
 	return false
 end
 
-function Geometry.IsBoxInShape(
+function Geometry.isBoxInShape(
 	boxCFrame: CFrame,
 	boxHalfSize: Vector3,
 	shapeCFrame: CFrame,
