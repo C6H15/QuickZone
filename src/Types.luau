@@ -1,23 +1,21 @@
 --!strict
 
 --[=[
-    @type ShapeType "Block" | "Ball" | "Cylinder" | "Wedge" | "CornerWedge"
-    @within QuickZone
-    The geometric shape of a Zone.
+	@type ShapeType "Block" | "Ball" | "Cylinder" | "Wedge" | "CornerWedge"
+	@within QuickZone
+	The geometric shape of a Zone.
 ]=]
 export type ShapeType = 'Block' | 'Ball' | 'Cylinder' | 'Wedge' | 'CornerWedge'
 
 --[=[
-    @type ZoneReference BasePart | Attachment | Bone
-    @within QuickZone
-    The physical instances that a Zone can track and sync to.
-]=]
-export type ZoneReference = BasePart | Attachment | Bone
-
---[=[
-    @interface EntityTable
-    @within QuickZone
-    A custom table that mimics the spatial properties of a Roblox Instance. 
+	@interface EntityTable
+	@within QuickZone
+	.Position Vector3?
+	.WorldPosition Vector3?
+	.CFrame CFrame?
+	.Transform: CFrame?
+	.GetPivot ((any) -> CFrame)?
+	A custom table that mimics the spatial properties of a Roblox Instance.
 ]=]
 export type EntityTable = {
 	Position: Vector3?,
@@ -28,8 +26,8 @@ export type EntityTable = {
 }
 
 --[=[
-    @type Entity BasePart | Model | Camera | Attachment | Bone | EntityTable
-    @within QuickZone
+	@type Entity BasePart | Model | Camera | Attachment | Bone | EntityTable
+	@within QuickZone
 ]=]
 export type Entity = BasePart | Model | Camera | Attachment | Bone | EntityTable
 
@@ -210,8 +208,6 @@ export type ZoneClass = {
 		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
 	) -> Zones,
 }
-
--- Observer
 
 export type Observer<T = any> = {
 	subscribe: (self: Observer<T>, group: Group<T>) -> Observer<T>,
