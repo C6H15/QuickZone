@@ -1,12 +1,38 @@
 --!strict
 
 --[=[
-	@type ShapeType "Block" | "Ball" | "Cylinder" | "Wedge" | "CornerWedge"
-	@within QuickZone
-
-	The geometric shape of a Zone.
+    @type ShapeType "Block" | "Ball" | "Cylinder" | "Wedge" | "CornerWedge"
+    @within QuickZone
+    The geometric shape of a Zone.
 ]=]
 export type ShapeType = 'Block' | 'Ball' | 'Cylinder' | 'Wedge' | 'CornerWedge'
+
+--[=[
+    @type ZoneReference BasePart | Attachment | Bone
+    @within QuickZone
+    The physical instances that a Zone can track and sync to.
+]=]
+export type ZoneReference = BasePart | Attachment | Bone
+
+--[=[
+    @interface EntityTable
+    @within QuickZone
+    A custom table that mimics the spatial properties of a Roblox Instance. 
+]=]
+export type EntityTable = {
+	Position: Vector3?,
+	WorldPosition: Vector3?,
+	CFrame: CFrame?,
+	Transform: CFrame?,
+	GetPivot: ((self: any) -> CFrame)?,
+}
+
+--[=[
+    @type Entity BasePart | Model | Camera | Attachment | Bone | EntityTable
+    @within QuickZone
+]=]
+export type Entity = BasePart | Model | Camera | Attachment | Bone | EntityTable
+
 export type BoundingVolume = {
 	position: Vector3,
 	cframe: CFrame,
@@ -30,9 +56,169 @@ export type Tree = {
 	count: number,
 }
 
-export type Observer<T = Entity> = {
+export type EntityData = {
+	activeObserverMemberships: { [number]: number },
+	lastPosition: Vector3,
+	strategy: number,
+	precisionSq: number,
+	updateRate: number,
+	bucketIndex: number,
+	staticVersion: number,
+	dynamicVersion: number,
+	logicVersion: number,
+	needsStatic: boolean,
+	needsDynamic: boolean,
+}
+
+export type Group<T = any> = {
+	add: (self: Group<T>, entity: T) -> Group<T>,
+	addBulk: (self: Group<T>, entities: { T }) -> Group<T>,
+	remove: (self: Group<T>, entity: T) -> Group<T>,
+	removeBulk: (self: Group<T>, entities: { T }) -> Group<T>,
+	clear: (self: Group<T>) -> Group<T>,
+
+	setAutoClean: (self: Group<T>, enabled: boolean) -> Group<T>,
+	getId: (self: Group<T>) -> number,
+	getEntities: (self: Group<T>) -> { T },
+	contains: (self: Group<T>, entity: T) -> boolean,
+	iterEntities: (self: Group<T>) -> () -> T?,
+	onDestroy: (self: Group<T>, callback: () -> ()) -> () -> (),
+	destroy: (self: Group<T>) -> (),
+}
+
+export type InternalGroup<T = any> = Group<T> & {
+	_add: (self: Group<T>, entity: T) -> Group<T>,
+	_addBulk: (self: Group<T>, entities: { T }) -> Group<T>,
+	_remove: (self: Group<T>, entity: T) -> Group<T>,
+	_removeBulk: (self: Group<T>, entities: { T }) -> Group<T>,
+	_clear: (self: Group<T>) -> Group<T>,
+	id: number,
+	entities: { T },
+	entityIndices: { [any]: number },
+	isManaged: boolean?,
+	autoClean: boolean,
+	onDestroyCallbacks: { () -> () }?,
+}
+
+export type GroupClass = {
+	new: <T>(config: {
+		entities: { T }?,
+		autoClean: boolean?,
+	}?) -> Group<T>,
+	fromTag: (tag: string) -> Group<Entity>,
+	players: () -> Group<Player>,
+	localPlayer: () -> Group<Player>,
+}
+
+export type Zone = {
+	sync: (self: Zone) -> Zone,
+	setReference: (self: Zone, reference: (Attachment | BasePart | Bone)?) -> Zone,
+	setAutoSync: (self: Zone, autoSync: boolean) -> Zone,
+	setDynamic: (self: Zone, dynamic: boolean) -> Zone,
+	setCFrame: (self: Zone, cf: CFrame) -> Zone,
+	setPosition: (self: Zone, pos: Vector3) -> Zone,
+	setSize: (self: Zone, size: Vector3) -> Zone,
+	setShape: (self: Zone, shape: ShapeType) -> Zone,
+	setMetadata: (self: Zone, metadata: any?) -> Zone,
+
+	getMetadata: (self: Zone) -> any?,
+	getId: (self: Zone) -> number,
+	getReference: (self: Zone) -> (Attachment | BasePart | Bone)?,
+	getPosition: (self: Zone) -> Vector3,
+	getCFrame: (self: Zone) -> CFrame,
+	getSize: (self: Zone) -> Vector3,
+	getShape: (self: Zone) -> ShapeType,
+
+	isDynamic: (self: Zone) -> boolean,
+	isPointInside: (self: Zone, point: Vector3) -> boolean,
+
+	onDestroy: (self: Zone, callback: () -> ()) -> () -> (),
+	destroy: (self: Zone) -> (),
+}
+
+export type InternalZone = Zone & {
+	attach: (self: Zone, observer: any) -> Zone,
+	detach: (self: Zone, observer: any) -> Zone,
+
+	id: number,
+	reference: (Attachment | BasePart | Bone)?,
+	dynamic: boolean,
+	metadata: any?,
+	autoSync: boolean,
+	syncConnections: { RBXScriptConnection }?,
+	onDestroyCallbacks: { () -> () }?,
+}
+
+export type Zones = {
+	sync: (self: Zones) -> Zones,
+	setAutoSync: (self: Zones, autoSync: boolean) -> Zones,
+	setDynamic: (self: Zones, dynamic: boolean) -> Zones,
+	getZones: (self: Zones) -> { Zone },
+	getMetadata: (self: Zones) -> any?,
+	isDynamic: (self: Zones) -> boolean,
+	isPointInside: (self: Zones, point: Vector3) -> boolean,
+	setMetadata: (self: Zones, metadata: any?) -> Zones,
+	contains: (self: Zones, zone: Zone) -> boolean,
+	iterZones: (self: Zones) -> () -> Zone?,
+	getReferences: (self: Zones) -> { Attachment | BasePart | Bone },
+	iterReferences: (self: Zones) -> () -> ((Attachment | BasePart | Bone)?, Zone?),
+
+	onDestroy: (self: Zones, callback: () -> ()) -> () -> (),
+	destroy: (self: Zones) -> (),
+}
+
+export type InternalZones = Zones & {
+	attach: (self: Zones, observer: any) -> Zones,
+	detach: (self: Zones, observer: any) -> Zones,
+
+	autoSync: boolean?,
+	dynamic: boolean,
+	metadata: any?,
+	zones: { [any]: boolean },
+	observers: { [any]: boolean },
+	onDestroyCallbacks: { () -> () }?,
+	onDestroyObserverCleanups: { [any]: () -> () },
+	onDestroyZoneCleanups: { [any]: () -> () },
+	add: (self: InternalZones, zone: Zone) -> (),
+	remove: (self: InternalZones, zone: Zone) -> (),
+}
+
+export type ZoneClass = {
+	new: (
+		config: {
+			cframe: CFrame,
+			size: Vector3,
+			shape: ShapeType?,
+			reference: (Attachment | BasePart | Bone)?,
+			isDynamic: boolean?,
+			metadata: any?,
+			autoSync: boolean?,
+		}
+	) -> Zone,
+	fromPart: (part: BasePart, config: { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?) -> Zone,
+	fromParts: (
+		parts: { BasePart },
+		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
+	) -> Zones,
+	fromTag: (tag: string, config: { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?) -> Zones,
+	fromDescendants: (
+		parent: Instance,
+		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
+	) -> Zones,
+	fromChildren: (
+		parent: Instance,
+		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
+	) -> Zones,
+}
+
+-- Observer
+
+export type Observer<T = any> = {
 	subscribe: (self: Observer<T>, group: Group<T>) -> Observer<T>,
 	unsubscribe: (self: Observer<T>, group: Group<T>) -> Observer<T>,
+	attach: (self: Observer<T>, zone: Zone | Zones) -> Observer<T>,
+	detach: (self: Observer<T>, zone: Zone | Zones) -> Observer<T>,
+
 	setPriority: (self: Observer<T>, n: number) -> Observer<T>,
 	setUpdateRate: (self: Observer<T>, hz: number) -> Observer<T>,
 	setPrecision: (self: Observer<T>, n: number) -> Observer<T>,
@@ -87,6 +273,7 @@ export type ObserverClass = {
 	new: <T>(
 		config: {
 			groups: { Group<T> }?,
+			zones: { Zone | Zones }?,
 			priority: number?,
 			updateRate: number?,
 			precision: number?,
@@ -96,7 +283,7 @@ export type ObserverClass = {
 	) -> Observer<T>,
 }
 
-export type InternalObserver<T = Entity> = Observer<T> & {
+export type InternalObserver<T = any> = Observer<T> & {
 	id: number,
 	onDestroyCallbacks: { () -> () }?,
 }
@@ -134,199 +321,6 @@ export type QuickZone = {
 	iterZonesOfEntity: (self: QuickZone, entity: any) -> () -> Zone?,
 	getGroupsOfEntity: (self: QuickZone, entity: any) -> { Group<any> },
 	iterGroupsOfEntity: (self: QuickZone, entity: any) -> () -> Group<any>?,
-}
-
-export type ZoneClass = {
-	new: (
-		config: {
-			cframe: CFrame,
-			size: Vector3,
-			shape: ShapeType?,
-			reference: (BasePart | Attachment | Bone)?,
-			isDynamic: boolean?,
-			metadata: any?,
-			autoSync: boolean?,
-			observers: { Observer<any> }?,
-		}
-	) -> Zone,
-	fromPart: (
-		part: BasePart,
-		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Observer<any> }? }?
-	) -> Zone,
-	fromParts: (
-		parts: { BasePart },
-		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Observer<any> }? }?
-	) -> Zones,
-	fromTag: (
-		tag: string,
-		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Observer<any> }? }?
-	) -> Zones,
-	fromDescendants: (
-		parent: Instance,
-		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Observer<any> }? }?
-	) -> Zones,
-	fromChildren: (
-		parent: Instance,
-		config: { isDynamic: boolean?, metadata: any?, autoSync: boolean?, observers: { Observer<any> }? }?
-	) -> Zones,
-}
-
-export type Zone = {
-	attach: (self: Zone, observer: any) -> Zone,
-	detach: (self: Zone, observer: any) -> Zone,
-
-	sync: (self: Zone) -> Zone,
-	setReference: (self: Zone, reference: (BasePart | Attachment | Bone)?) -> Zone,
-	setAutoSync: (self: Zone, autoSync: boolean) -> Zone,
-	setDynamic: (self: Zone, dynamic: boolean) -> Zone,
-	setCFrame: (self: Zone, cf: CFrame) -> Zone,
-	setPosition: (self: Zone, pos: Vector3) -> Zone,
-	setSize: (self: Zone, size: Vector3) -> Zone,
-	setShape: (self: Zone, shape: ShapeType) -> Zone,
-	setMetadata: (self: Zone, metadata: any?) -> Zone,
-
-	getMetadata: (self: Zone) -> any?,
-	getId: (self: Zone) -> number,
-	getReference: (self: Zone) -> (BasePart | Attachment | Bone)?,
-	getPosition: (self: Zone) -> Vector3,
-	getCFrame: (self: Zone) -> CFrame,
-	getSize: (self: Zone) -> Vector3,
-	getShape: (self: Zone) -> ShapeType,
-
-	isDynamic: (self: Zone) -> boolean,
-	isPointInside: (self: Zone, point: Vector3) -> boolean,
-
-	onDestroy: (self: Zone, callback: () -> ()) -> () -> (),
-	destroy: (self: Zone) -> (),
-}
-
-export type InternalZone = Zone & {
-	id: number,
-	reference: (BasePart | Attachment | Bone)?,
-	dynamic: boolean,
-	metadata: any?,
-	autoSync: boolean,
-	syncConnections: { RBXScriptConnection }?,
-	onDestroyCallbacks: { () -> () }?,
-}
-
-export type Zones = {
-	attach: (self: Zones, observer: Observer<any>) -> Zones,
-	detach: (self: Zones, observer: Observer<any>) -> Zones,
-
-	sync: (self: Zones) -> Zones,
-	setAutoSync: (self: Zones, autoSync: boolean) -> Zones,
-	setDynamic: (self: Zones, dynamic: boolean) -> Zones,
-	getZones: (self: Zones) -> { Zone },
-	getMetadata: (self: Zones) -> any?,
-	isDynamic: (self: Zones) -> boolean,
-	isPointInside: (self: Zones, point: Vector3) -> boolean,
-	setMetadata: (self: Zones, metadata: any?) -> Zones,
-	contains: (self: Zones, zone: Zone) -> boolean,
-	iterZones: (self: Zones) -> () -> Zone?,
-
-	onDestroy: (self: Zones, callback: () -> ()) -> () -> (),
-	destroy: (self: Zones) -> (),
-}
-
-export type InternalZones = Zones & {
-	autoSync: boolean?,
-	dynamic: boolean,
-	metadata: any?,
-	zones: { [Zone]: boolean },
-	observers: { [Observer<any>]: boolean },
-	onDestroyCallbacks: { () -> () }?,
-	onDestroyObserverCleanups: { [Observer<any>]: () -> () },
-	onDestroyZoneCleanups: { [Zone]: () -> () },
-	add: (self: InternalZones, zone: Zone) -> (),
-	remove: (self: InternalZones, zone: Zone) -> (),
-}
-
-export type GroupClass = {
-	new: <T>(config: {
-		entities: { T }?,
-		autoClean: boolean?,
-	}?) -> Group<T>,
-	fromTag: (tag: string) -> Group<Entity>,
-	players: () -> Group<Player>,
-	localPlayer: () -> Group<Player>,
-}
-
-export type Group<T = Entity> = {
-	add: (self: Group<T>, entity: T) -> Group<T>,
-	addBulk: (self: Group<T>, entities: { T }) -> Group<T>,
-	remove: (self: Group<T>, entity: T) -> Group<T>,
-	removeBulk: (self: Group<T>, entities: { T }) -> Group<T>,
-	clear: (self: Group<T>) -> Group<T>,
-
-	setAutoClean: (self: Group<T>, enabled: boolean) -> Group<T>,
-	getId: (self: Group<T>) -> number,
-	getEntities: (self: Group<T>) -> { T },
-	contains: (self: Group<T>, entity: T) -> boolean,
-	getPlayers: (self: Group<T>) -> { Player },
-	iterEntities: (self: Group<T>) -> () -> T?,
-	iterPlayers: (self: Group<T>) -> () -> Player?,
-
-	onDestroy: (self: Group<T>, callback: () -> ()) -> () -> (),
-	destroy: (self: Group<T>) -> (),
-}
-
-export type InternalGroup<T = Entity> = Group<T> & {
-	_add: (self: Group<T>, entity: T) -> Group<T>,
-	_addBulk: (self: Group<T>, entities: { T }) -> Group<T>,
-	_remove: (self: Group<T>, entity: T) -> Group<T>,
-	_removeBulk: (self: Group<T>, entities: { T }) -> Group<T>,
-	_clear: (self: Group<T>) -> Group<T>,
-	id: number,
-	entities: { T },
-	entityIndices: { [T]: number },
-	isManaged: boolean?,
-	autoClean: boolean,
-	onDestroyCallbacks: { () -> () }?,
-}
-
---[=[
-	@type Entity BasePart | Model | Camera | Attachment | Bone | EntityTable
-	@within QuickZone
-
-	An Entity is any object that can be tracked within a Group. It supports native 
-	Roblox Instances and custom duck-typed tables (useful for custom physics simulation or ECS components)
-]=]
-export type Entity = BasePart | Model | Camera | Attachment | Bone | EntityTable
-
---[=[
-	@interface EntityTable
-	@within QuickZone
-	.Position Vector3?
-	.WorldPosition Vector3?
-	.CFrame CFrame?
-	.Transform: CFrame?
-	.GetPivot (() -> CFrame)?
-
-	A custom table that mimics the spatial properties of a Roblox Instance. 
-	QuickZone will automatically detect which property to use to track this entity.
-]=]
-export type EntityTable = {
-	Position: Vector3?,
-	WorldPosition: Vector3?,
-	CFrame: CFrame?,
-	Transform: CFrame?,
-	GetPivot: ((self: any) -> CFrame)?,
-	[any]: any,
-}
-
-export type EntityData = {
-	activeObserverMemberships: { [number]: number },
-	lastPosition: Vector3,
-	strategy: number,
-	precisionSq: number,
-	updateRate: number,
-	bucketIndex: number,
-	staticVersion: number,
-	dynamicVersion: number,
-	logicVersion: number,
-	needsStatic: boolean,
-	needsDynamic: boolean,
 }
 
 return nil

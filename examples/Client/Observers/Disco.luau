@@ -7,13 +7,12 @@ local SharedGroups = require(ReplicatedStorage.Common.Groups)
 local discoPart = workspace:WaitForChild('DiscoPart')
 local defaultColor = discoPart.Color
 
+local discoZone = QuickZone.Zone.fromPart(discoPart)
+
 local discoObserver = QuickZone.Observer.new({
 	groups = { SharedGroups.Players },
+	zones = { discoZone },
 	updateRate = 5,
-})
-
-QuickZone.Zone.fromPart(discoPart, {
-	observers = { discoObserver },
 })
 
 discoObserver:observeGroup(function(_, zone)
