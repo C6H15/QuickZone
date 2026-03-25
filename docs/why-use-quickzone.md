@@ -18,7 +18,7 @@ Traditional libraries are Zone-Centric. They iterate through every Zone instance
 
 QuickZone, on the other hand, is Entity-Centric. It keeps a list of entities and queries them against an LBVH (*O(N log Z)*). 
 
-- **The Benefit**: This means that you can have hundreds, even thousands, of zones with very low runtime cost. The cost effectively becomes a factor of the number of entities that are being processed.
+- **The Benefit**: This means that you can have hundreds, even thousands, of zones with close to zero runtime cost. The cost effectively becomes a factor of the number of entities that are being processed.
 
 ---
 
@@ -33,14 +33,16 @@ Writing performant code shouldn't mean writing complicated code. QuickZone is de
 
 ---
 
-### 3. Data-Oriented Design (DOD) & ECS Compatibility
-QuickZone focuses on how data is laid out in memory based on DOD principles.
+### 3. Data-Oriented Design (DOD)
+Most Roblox libraries rely heavily on Object-Oriented Programming (OOP). QuickZone is built entirely around Data-Oriented Design, prioritizing how the CPU actually reads memory.
 
-- **Contiguous Arrays**: Unlike standard OOP where data is scattered across the heap in different objects, QuickZone stores entity data in pre-allocated, contiguous arrays to improve CPU cache locality.
+- **Contiguous Memory**: QuickZone stores its LBVH and entity data in pre-allocated, flat arrays. This completely eliminates slow pointer-chasing and guarantees maximum CPU cache locality.
 
-- **Stable Memory**: By using flat arrays and object pooling, QuickZone generates almost no garbage during runtime. This prevents lag spikes caused by the GC.
+- **Bitwise Spatial Sorting**: To effectively map 3D space into these flat 1D arrays, QuickZone utilizes **Morton Codes (Z-Order Curves)**. By transforming 3D coordinates into integers via highly optimized bitwise operations, spatial queries become instant array lookups.
 
-- **Zero-Allocation Iterators**: QuickZone provides generators like `iterEntitiesInside()`. These generator functions are fast and allocate no memory, making QuickZone a great fit for ECS architectures.
+- **Zero GC Pressure**: Because QuickZone relies on stable arrays and aggressive object pooling, it generates practically zero garbage during runtime. This completely eliminates the micro-stutters typically caused by Luau's Garbage Collector cleaning up old tables.
+
+- **Iterators**: QuickZone provides zero-allocation generators like `iterEntitiesInside()`. Because these iterators allocate no new memory, QuickZone is a perfect library for Entity Component System (ECS) workflows.
 
 ---
 
@@ -129,7 +131,7 @@ This test highlights the fundamental flaw in traditional Zone-Centric libraries.
 **The Result:** QuickZone maintained a perfect 60 FPS.
 * ZonePlus and SimpleZone imploded, dropping to 3-5 FPS, making the game unplayable.
 * ZonePlus consumed over 4 GB of memory, which would crash most mobile devices instantly.
-* QuickZone proved it is *O(N)* relative to entities, not zones. You can add as many zones as you want without performance penalties.
+* QuickZone proved its *O(N log Z)* algorithmic advantage.
 * QuickZone vs. QuickBounds: Both libraries scaled well by maintaining ~60 FPS. However, QuickZone still maintained a slight FPS lead and, more importantly, delivered double the event throughput (643 vs 328) compared to QuickBounds.
 
 ### Test 2: High Entity Count

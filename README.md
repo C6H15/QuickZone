@@ -1,13 +1,21 @@
 <div align="center">
 	<h1>QuickZone</h1>
-	<p>A flexible, low-overhead spatial library for Roblox. Maintain 60 FPS with over a million zones.</p>
+	<p>An unopinionated, physics-free spatial library for Roblox. Maintain 60 FPS with over a million zones.</p>
 	<a href="https://LDGerrits.github.io/QuickZone/"><strong>View docs</strong></a>
 </div>
 <!--moonwave-hide-before-this-line-->
 
 ## Why use QuickZone?
 
-By bypassing the physics engine in favor of pure geometric math, QuickZone is a predictable, budgeted and flexible solution for spatial tracking that has near-zero impact on your frame rate or memory.
+**The Physics Bottleneck.** Traditional zone libraries act as wrappers for Roblox's physics engine (e.g., `GetPartsInPart` or `.Touched`), binding spatial logic to collision meshes. This results in expensive geometry calculations, unpredictable overhead, low flexibility, and much worse performance as the number of zones grows. 
+
+**Clean Architecture.** QuickZone takes a different approach. By separating *what* you track (Groups), *where* you track them (Zones), and *how* you respond (Observers), it eliminates monolithic, instance-bound logic and keeps your codebase clean. 
+
+**Physics-Free Scaling.** QuickZone achieves *O(N log Z)* scaling by bypassing the physics engine in favor of pure geometric math and a custom Linear Bounding Volume Hierarchy (LBVH). Performance is driven by the number of entities, while the map size is virtually irrelevant.
+
+**Unopinionated API.** Whether you prefer classic event-driven programming, robust lifecycle management (`observe()`), or zero-allocation polling for ECS architectures, QuickZone can fit your workflow.
+
+**Total Performance Control.** The runtime cost is entirely in your control. Through a budgeted scheduler, the workload is smeared across frames and only consumes as much CPU time as you explicitly allow. Paired with contiguous arrays that produce virtually zero garbage collection (GC) pressure, QuickZone produces a flat, predictable performance profile.
 
 ## What it offers
 

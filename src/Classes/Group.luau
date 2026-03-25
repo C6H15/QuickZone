@@ -25,70 +25,84 @@ local function trackPlayer(group: Types.InternalGroup, player: Player, trackerSt
 		return
 	end
 
-	local charConns: { RBXScriptConnection } = {}
-	local currentHrp: BasePart? = nil
+	local charConn: RBXScriptConnection?
+	local hrpConn: RBXScriptConnection?
+	local currentCharacter: Model?
+	local currentHrp: BasePart?
 
-	local function cleanCharacter()
+	local function clearHrp()
+		if hrpConn then
+			hrpConn:Disconnect()
+			hrpConn = nil
+		end
+
 		if currentHrp then
-			group:_remove(currentHrp)
+			group:_remove(player)
+			State.entityToReference[currentHrp] = nil
+			State.referenceToEntity[player] = nil
 			currentHrp = nil
 		end
-		for _, c in charConns do
-			c:Disconnect()
-		end
-		table.clear(charConns)
 	end
 
-	local function onCharAdded(character: Model)
-		cleanCharacter()
+	local function clearCharacter()
+		clearHrp()
+		if charConn then
+			charConn:Disconnect()
+			charConn = nil
+		end
+		currentCharacter = nil
+	end
 
-		task.spawn(function()
-			local hrp = character:WaitForChild('HumanoidRootPart', 5)
+	local function checkHrp(character: Model)
+		local hrp = character:FindFirstChild('HumanoidRootPart')
 
-			if not hrp or not player:IsDescendantOf(Players) then
-				return
-			end
+		if hrp and hrp:IsA('BasePart') and hrp ~= currentHrp then
+			clearHrp()
+			currentHrp = hrp
 
-			if player.Character ~= character then
-				return
-			end
+			State.entityToReference[hrp] = player
+			State.referenceToEntity[player] = hrp
+			group:_add(player)
 
-			if hrp:IsA('BasePart') then
-				currentHrp = hrp
+			-- Listen for the HRP streaming out or getting destroyed
+			hrpConn = hrp.AncestryChanged:Connect(function(_, parent)
+				if not parent then
+					clearHrp()
+				end
+			end)
+		end
+	end
 
-				State.entityToReference[hrp] = player
-				State.referenceToEntity[player] = hrp
+	local function onCharacterAdded(character: Model)
+		clearCharacter()
+		currentCharacter = character
 
-				group:_add(player)
+		checkHrp(character)
 
-				table.insert(
-					charConns,
-					hrp.AncestryChanged:Connect(function(_, parent)
-						if not parent then
-							cleanCharacter()
-						end
-					end)
-				)
+		-- Listen for the HRP streaming in dynamically
+		charConn = character.ChildAdded:Connect(function(child)
+			if child.Name == 'HumanoidRootPart' then
+				checkHrp(character)
 			end
 		end)
 	end
 
-	local addedConn = player.CharacterAdded:Connect(onCharAdded)
+	local addedConn = player.CharacterAdded:Connect(onCharacterAdded)
 
 	local removingConn = player.CharacterRemoving:Connect(function(character)
-		if currentHrp and currentHrp.Parent == character then
-			cleanCharacter()
+		if currentCharacter == character then
+			clearCharacter()
 		end
 	end)
 
 	trackerStore[player] = function()
 		addedConn:Disconnect()
 		removingConn:Disconnect()
-		cleanCharacter()
+		clearCharacter()
 	end
 
 	if player.Character then
-		onCharAdded(player.Character)
+		onCharacterAdded(player.Character)
 	end
 end
 

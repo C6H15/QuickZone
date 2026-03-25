@@ -118,6 +118,10 @@ Observer.__index = Observer
 	higher priority observers take complete control.
 	:::
 
+	:::warning Safety 
+	If set to unsafe, you are not allowed to yield in the callbacks anymore. If you do, QuickZone will throw errors.
+	:::
+
 	@tag Constructor
 	@param config { groups: { Types.Group }?, zones: { Types.Zone | Types.Zones }?, priority: number?, updateRate: number?, precision: number?, enabled: boolean?, safety: boolean? }?
 	@return Observer
@@ -948,6 +952,10 @@ end
 
 --[=[
 	Whether to wrap callbacks in task.spawn (safe) or not (unsafe).
+
+	:::warning Safety 
+	If set to unsafe, you are not allowed to yield in the callbacks anymore. If you do, QuickZone will throw errors.
+	:::
 
 	@method setSafety
 	@within Observer

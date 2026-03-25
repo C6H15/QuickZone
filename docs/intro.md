@@ -4,8 +4,17 @@ sidebar_position: 1
 
 # Introduction
 
-## Overview
-By bypassing the physics engine in favor of pure geometric math, QuickZone is a predictable, budgeted and flexible solution for spatial tracking that has near-zero impact on your frame rate or memory.
+## Why use QuickZone?
+
+**The Physics Bottleneck.** Traditional zone libraries act as wrappers for Roblox's physics engine (e.g., `GetPartsInPart` or `.Touched`), binding spatial logic to collision meshes. This results in expensive geometry calculations, unpredictable overhead, low flexibility, and much worse performance as the number of zones grows. 
+
+**Clean Architecture.** QuickZone takes a different approach. By separating *what* you track (Groups), *where* you track them (Zones), and *how* you respond (Observers), it eliminates monolithic, instance-bound logic and keeps your codebase clean. 
+
+**Physics-Free Scaling.** QuickZone achieves *O(N log Z)* scaling by bypassing the physics engine in favor of pure geometric math and a custom Linear Bounding Volume Hierarchy (LBVH). Performance is driven by the number of entities, while the map size is virtually irrelevant.
+
+**Unopinionated API.** Whether you prefer classic event-driven programming, robust lifecycle management (`observe()`), or zero-allocation polling for ECS architectures, QuickZone can fit your workflow.
+
+**Total Performance Control.** The runtime cost is entirely in your control. Through a budgeted scheduler, the workload is smeared across frames and only consumes as much CPU time as you explicitly allow. Paired with contiguous arrays that produce virtually zero garbage collection (GC) pressure, QuickZone produces a flat, predictable performance profile.
 
 :::info Point-Based Detection
 QuickZone uses point-based detection. It checks if a specific point (e.g., the center of a Part, the position of an Attachment, or the Pivot of a Model) is inside a zone's boundary.
@@ -37,7 +46,7 @@ QuickZone uses point-based detection. It checks if a specific point (e.g., the c
 
 ## Performance Benchmarks
 
-We stress-tested QuickZone against the most popular alternatives in two distinct scenarios: **Entity Stress** (lots of moving parts) and **Map Stress** (lots of zones).
+QuickZone was benchmarked against the most popular alternatives in two distinct scenarios: **Map Stress** (lots of zones) and **Entity Stress** (lots of moving parts).
 
 _Note: For the QuickZone benchmark, we used a frame budget of 1ms, the entities' update rate was set to 60Hz, and precision was 0.0._
 
@@ -55,7 +64,7 @@ This test highlights the fundamental flaw in traditional Zone-Centric libraries.
 **The Result:** QuickZone maintained a perfect 60 FPS.
 * ZonePlus and SimpleZone imploded, dropping to 3-5 FPS, making the game unplayable.
 * ZonePlus consumed over 4 GB of memory, which would crash most mobile devices instantly.
-* QuickZone proved it is *O(N)* relative to entities, not zones. You can add as many zones as you want without performance penalties.
+* QuickZone proved its *O(N log Z)* algorithmic advantage.
 * QuickZone vs. QuickBounds: Both libraries scaled well by maintaining ~60 FPS. However, QuickZone still maintained a slight FPS lead and, more importantly, delivered double the event throughput (643 vs 328) compared to QuickBounds.
 
 ### Test 2: High Entity Count
@@ -78,7 +87,7 @@ This test highlights the fundamental flaw in traditional Zone-Centric libraries.
 The package name + version is
 
 ```
-ldgerrits/quickzone@^1.3.11
+ldgerrits/quickzone@^1.3.12
 ```
 
 ### Manual

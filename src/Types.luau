@@ -297,7 +297,7 @@ export type QuickZone = {
 	rebuild: (self: QuickZone) -> QuickZone,
 	update: (self: QuickZone, dt: number) -> QuickZone,
 	setFrameBudget: (self: QuickZone, ms: number) -> QuickZone,
-	setReference: (self: QuickZone, reference: any?, entity: Entity?) -> QuickZone,
+	setReference: (self: QuickZone, entity: Entity, reference: any?) -> QuickZone,
 	visualize: (self: QuickZone, enabled: boolean) -> QuickZone,
 	removeEntity: (self: QuickZone, entity: any) -> QuickZone,
 

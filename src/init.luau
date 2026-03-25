@@ -157,20 +157,11 @@ end
 
 	@method setReference
 	@within QuickZone
-	@param reference any?
 	@param entity Entity
+	@param reference any?
 	@return QuickZone
 ]=]
-function QuickZone:setReference(reference: any?, entity: Entity?): QuickZone
-	if entity == nil then
-		local oldEntity = referenceToEntity[reference]
-		if oldEntity then
-			entityToReference[oldEntity] = nil
-		end
-		referenceToEntity[reference] = nil
-		return self
-	end
-
+function QuickZone:setReference(entity: Entity, reference: any?): QuickZone
 	if reference == nil then
 		local oldReference = entityToReference[entity]
 		if oldReference then

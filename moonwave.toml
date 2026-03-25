@@ -49,7 +49,7 @@ description = "By utilizing contiguous arrays and object pooling, QuickZone prod
 
 [[home.features]]
 title = "No Dependencies"
-description = "QuickZone is a standalone, lightweight library that does not rely on any other external packages."
+description = "QuickZone is a standalone, lightweight library that does not rely on external packages."
 
 organizationName = "LDGerrits"
 projectName = "QuickZone"
