@@ -30,7 +30,7 @@ local observerEnteredCallbacks = State.observerEnteredCallbacks
 local observerExitedCallbacks = State.observerExitedCallbacks
 local observerTransitionedCallbacks = State.observerTransitionedCallbacks
 local observerEnabled = State.observerEnabled
-local observerSafety = State.observerSafety
+local observerSafe = State.observerSafe
 local observerPrecisionSq = State.observerPrecisionSq
 local observerUpdateRate = State.observerUpdateRate
 local observerStaticCount = State.observerStaticCount
@@ -243,9 +243,9 @@ local function fireCallback(
 	callbacks: { (Types.Entity, Types.Zone) -> () },
 	entity: any,
 	zone: Types.Zone,
-	safety: boolean
+	safe: boolean
 )
-	if safety then
+	if safe then
 		for _, callback in callbacks do
 			task.spawn(callback, entity, zone)
 		end
@@ -431,10 +431,10 @@ function Scheduler.update(dt: number)
 						continue
 					end
 
-					local safety = observerSafety[observerId]
+					local safe = observerSafe[observerId]
 					local zone = zoneIdToZoneObj[oldZoneId]
 					local reference = entityToReference[entity] or entity
-					fireCallback(cbs, reference, zone, safety)
+					fireCallback(cbs, reference, zone, safe)
 				end
 
 				-- Entries & Transitions
@@ -458,7 +458,7 @@ function Scheduler.update(dt: number)
 
 					-- Update the tracker.
 					current[observerId] = zoneIdx
-					local safety = observerSafety[observerId]
+					local safe = observerSafe[observerId]
 
 					if not currentZoneId then -- New entry
 						observerTrackingEntities[observerId][entity] = true
@@ -470,7 +470,7 @@ function Scheduler.update(dt: number)
 
 						local zone = zoneIdToZoneObj[zoneIdx]
 						local reference = entityToReference[entity] or entity
-						fireCallback(cbs, reference, zone, safety)
+						fireCallback(cbs, reference, zone, safe)
 					else -- Transition
 						local cbs = observerTransitionedCallbacks[observerId]
 						if not cbs then
@@ -479,7 +479,7 @@ function Scheduler.update(dt: number)
 
 						local zone = zoneIdToZoneObj[zoneIdx]
 						local reference = entityToReference[entity] or entity
-						fireCallback(cbs, reference, zone, safety)
+						fireCallback(cbs, reference, zone, safe)
 					end
 				end
 			end
@@ -508,7 +508,7 @@ function Scheduler.update(dt: number)
 	end
 end
 
-function Scheduler.setAutoUpdate(enabled: boolean)
+function Scheduler.setEnabled(enabled: boolean)
 	if enabled then
 		if not autoUpdateConnection then
 			autoUpdateConnection = RunService.PostSimulation:Connect(Scheduler.update)
@@ -551,6 +551,6 @@ function Scheduler.rebuildTrees()
 	end
 end
 
-Scheduler.setAutoUpdate(Config.Scheduler.autoUpdate)
+Scheduler.setEnabled(Config.Scheduler.autoUpdate)
 
 return Scheduler
