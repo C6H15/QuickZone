@@ -1080,13 +1080,6 @@ end
 	@within Zone
 ]=]
 function Zone.destroy(self: Types.InternalZone): ()
-	if self.onDestroyCallbacks then
-		for _, callback in self.onDestroyCallbacks do
-			task.spawn(callback)
-		end
-		table.clear(self.onDestroyCallbacks)
-	end
-
 	clearAutoSync(self)
 
 	-- Force flush so the zone object will not be nil when spatial query is done in the Scheduler
@@ -1127,6 +1120,13 @@ function Zone.destroy(self: Types.InternalZone): ()
 				end
 			end
 		end
+	end
+
+	if self.onDestroyCallbacks then
+		for _, callback in self.onDestroyCallbacks do
+			task.spawn(callback)
+		end
+		table.clear(self.onDestroyCallbacks)
 	end
 
 	State.zoneAttachedObservers[id] = nil

@@ -1,3 +1,4 @@
+-- QuickZone v1.3.15 • LDGerrits
 --!strict
 
 local RunService = game:GetService('RunService')
@@ -42,7 +43,7 @@ export type Group<T> = Types.Group<T>
 export type Entity = Types.Entity
 
 --[=[
-	QuickZone is a high-performance spatial partitioning library for Roblox. 
+	An unopinionated, physics-free spatial library for Roblox. Maintain 60 FPS with over a million zones.
 
 	@class QuickZone
 ]=]

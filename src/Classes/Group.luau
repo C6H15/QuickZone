@@ -30,7 +30,11 @@ local function trackPlayer(group: Types.InternalGroup, player: Player, trackerSt
 	local currentCharacter: Model?
 	local currentHrp: BasePart?
 
-	local function clearHrp()
+	local function clearHrp(targetHrp: BasePart?)
+		if targetHrp and targetHrp ~= currentHrp then
+			return
+		end
+
 		if hrpConn then
 			hrpConn:Disconnect()
 			hrpConn = nil
@@ -54,6 +58,10 @@ local function trackPlayer(group: Types.InternalGroup, player: Player, trackerSt
 	end
 
 	local function checkHrp(character: Model)
+		if character ~= currentCharacter then
+			return
+		end
+
 		local hrp = character:FindFirstChild('HumanoidRootPart')
 
 		if hrp and hrp:IsA('BasePart') and hrp ~= currentHrp then
@@ -67,7 +75,7 @@ local function trackPlayer(group: Types.InternalGroup, player: Player, trackerSt
 			-- Listen for the HRP streaming out or getting destroyed
 			hrpConn = hrp.AncestryChanged:Connect(function(_, parent)
 				if not parent then
-					clearHrp()
+					clearHrp(hrp)
 				end
 			end)
 		end
