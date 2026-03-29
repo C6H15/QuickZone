@@ -350,7 +350,7 @@ function Observer.observe(self: Types.InternalObserver, callback: (any, Types.Zo
 		end
 	end)
 
-	return function()
+	local function disconnect()
 		cleanupEnter()
 		cleanupExit()
 
@@ -360,6 +360,13 @@ function Observer.observe(self: Types.InternalObserver, callback: (any, Types.Zo
 			cleanups[entity] = nil
 			task.spawn(cleanup)
 		end
+	end
+
+	local disconnectDestroy = self:onDestroy(disconnect)
+
+	return function()
+		disconnectDestroy()
+		disconnect()
 	end
 end
 
@@ -472,7 +479,7 @@ function Observer.observePlayer(self: Types.InternalObserver, callback: (Player,
 		end
 	end)
 
-	return function()
+	local function disconnect()
 		cleanupEnter()
 		cleanupExit()
 
@@ -482,6 +489,13 @@ function Observer.observePlayer(self: Types.InternalObserver, callback: (Player,
 			cleanups[entity] = nil
 			task.spawn(cleanup)
 		end
+	end
+
+	local disconnectDestroy = self:onDestroy(disconnect)
+
+	return function()
+		disconnectDestroy()
+		disconnect()
 	end
 end
 
@@ -600,7 +614,7 @@ function Observer.observeLocalPlayer(self: Types.InternalObserver, callback: (Ty
 		end
 	end)
 
-	return function()
+	local function disconnect()
 		cleanupEnter()
 		cleanupExit()
 
@@ -610,6 +624,13 @@ function Observer.observeLocalPlayer(self: Types.InternalObserver, callback: (Ty
 			cleanups[entity] = nil
 			task.spawn(cleanup)
 		end
+	end
+
+	local disconnectDestroy = self:onDestroy(disconnect)
+
+	return function()
+		disconnectDestroy()
+		disconnect()
 	end
 end
 

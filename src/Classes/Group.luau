@@ -605,6 +605,7 @@ function Group.destroy(self: Types.InternalGroup): ()
 
 	State.groupToObservers[self.id] = nil
 	State.groups[self.id] = nil
+	State.groupEntityCleanups[self.id] = nil
 
 	setmetatable(self :: any, nil)
 end
