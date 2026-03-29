@@ -1,4 +1,11 @@
 --!strict
+--[=[ 
+	@class Observer
+
+	Observers are the logical bridge between Groups and Zones.
+	They monitor specific groups and trigger events when entities within those 
+	groups enter or exit any zones associated with the observer.
+]=]
 
 local Players = game:GetService('Players')
 local RunService = game:GetService('RunService')
@@ -87,14 +94,6 @@ local function disconnectObserverFromGroup(observerId: number, group: Types.Inte
 		end
 	end
 end
-
---[=[ 
-	Observers are the logical bridge between Groups and Zones.
-	They monitor specific groups and trigger events when entities within those 
-	groups enter or exit any zones associated with the observer.
-
-	@class Observer
-]=]
 local Observer = {}
 Observer.__index = Observer
 

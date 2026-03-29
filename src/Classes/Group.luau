@@ -1,4 +1,13 @@
 --!strict
+--[=[ 
+	@class Group
+
+	Groups represent a collection of entities that should be tracked by the system.
+
+	:::info Observer
+	Every entity must be in a group to be observed.
+	:::
+]=]
 
 local CollectionService = game:GetService('CollectionService')
 local Players = game:GetService('Players')
@@ -122,15 +131,6 @@ local function untrackPlayer(player: Player, trackerStore: { [Player]: () -> () 
 	end
 end
 
---[=[ 
-	Groups represent a collection of entities that should be tracked by the system.
-
-	:::info Observer
-	Every entity must be in a group to be observed.
-	:::
-
-	@class Group
-]=]
 local Group = {}
 Group.__index = Group
 
