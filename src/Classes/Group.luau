@@ -51,8 +51,6 @@ local function trackPlayer(group: Types.InternalGroup, player: Player, trackerSt
 
 		if currentHrp then
 			group:_remove(currentHrp)
-			State.entityToReference[currentHrp] = nil
-			State.referenceToEntity[player] = nil
 			currentHrp = nil
 		end
 	end
@@ -792,6 +790,15 @@ function Group._remove(self: Types.InternalGroup, reference: any): Types.Group
 		State.entityToObservers[entity] = nil
 		State.dirtyProfiles[entity] = nil
 		State.dirtyTopology[entity] = nil
+
+		local ref = State.entityToReference[entity]
+		if ref then
+			State.entityToReference[entity] = nil
+			-- Ensure we only clear the reverse map if it still points to this exact entity
+			if State.referenceToEntity[ref] == entity then
+				State.referenceToEntity[ref] = nil
+			end
+		end
 	end
 
 	return self
