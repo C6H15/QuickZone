@@ -1113,9 +1113,9 @@ function Zone.destroy(self: Types.InternalZone): ()
 				local ref = State.entityToReference[entity] or entity
 				for _, fn in cbs do
 					if safety then
-						task.spawn(fn, ref, self)
+						task.spawn(fn, ref, self, entity)
 					else
-						fn(ref, self)
+						fn(ref, self, entity)
 					end
 				end
 			end
