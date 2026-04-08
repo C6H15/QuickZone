@@ -34,8 +34,6 @@ export interface Zone {
 }
 
 export interface Zones {
-	attach(observer: Observer): Zones
-	detach(observer: Observer): Zones
 	sync(): Zones
 	getZones(): Zone[]
 	isDynamic(): boolean
