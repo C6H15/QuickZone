@@ -29,27 +29,27 @@ description = "Set a hard frame budget (e.g., 1ms) to completely eliminate lag s
 
 [[home.features]]
 title = "Shape Support"
-description = "Support for Blocks, Balls, Cylinders, Wedges and CornerWedges without relying on physics collision meshes."
+description = "Built-in for Blocks, Balls, Cylinders, Wedges and CornerWedges without relying on physics collision meshes."
 
 [[home.features]]
-title = "Lifecycle Management"
-description = "Use the `observe` pattern for 100% reliable cleanup. Say goodbye to juggling `onEnter` and `onExit` events (though classic event-driven programming is still supported)."
-
-[[home.features]]
-title = "ECS & Data-Oriented"
-description = "Built-in support for zero-allocation iterators and deterministic manual stepping, making it a perfect fit for ECS architectures."
+title = "Declarative Lifecycles"
+description = "Replace event-based logic with the observe pattern for declarative logic. There is no need to manually track `onEnter` and `onExit` states."
 
 [[home.features]]
 title = "Decoupled Architecture"
-description = "Separate game logic from spatial instances. Bind behaviors directly to categories of entities (Players, NPCs, Projectiles) for a clean, scalable codebase."
+description = "Separate where tracking happens (Zones) from who is being tracked (Groups) and how the system responds (Observers). Bind complex behaviors to groups of entities with zero boilerplate."
+
+[[home.features]]
+title = "ECS-Ready"
+description = "Built-in support for zero-allocation iterators and deterministic manual stepping, making it a perfect fit for ECS architectures and data-oriented workflows."
 
 [[home.features]]
 title = "Zero-Allocation Runtime"
-description = "By utilizing contiguous arrays and object pooling, QuickZone produces close to zero GC pressure, avoiding memory-related stutters."
+description = "By utilizing contiguous arrays and object pooling, QuickZone produces virtually zero GC pressure to avoid memory-related stutters."
 
 [[home.features]]
-title = "No Dependencies"
-description = "QuickZone is a standalone, lightweight library that does not rely on external packages."
+title = "Dynamic Zones"
+description = "Use moving zones at very little cost. QuickZone maintains separate Static and Dynamic LBVHs for maximum efficiency."
 
 organizationName = "LDGerrits"
 projectName = "QuickZone"

@@ -15,7 +15,6 @@ QuickZone bypasses the physics engine in favor of geometric math and data-orient
 Traditional libraries are Zone-Centric. They iterate through every Zone instance and query the physics engine for overlapping parts (i.e. entities in QuickZone-terms).
 
 - **The Scaling Problem**: Performance worsens as you add more zones (*O(Z)*), even if the number of entities remains static.
-
 QuickZone, on the other hand, is Entity-Centric. It keeps a list of entities and queries them against an LBVH (*O(N log Z)*). 
 
 - **The Benefit**: This means that you can have hundreds, even thousands, of zones with close to zero runtime cost. The cost effectively becomes a factor of the number of entities that are being processed.
@@ -29,12 +28,14 @@ Writing performant code shouldn't mean writing complicated code. QuickZone is de
 
 - **Declarative Configurations**: QuickZone lets you define behaviors, priorities, and relationships upfront in simple configuration tables, drastically reducing boilerplate and keeping your scripts clean.
 
-- **Lifecycle Cleanups**: The `.observe()` pattern brings modern state management to spatial tracking. Return a function when a player enters, and it runs automatically when they exit.
+- **Lifecycle Management**: Replace event-based logic with the observe pattern for declarative logic. Return a function when a player enters, and it runs automatically when they exit. There is no need to manually track `onEnter` and `onExit` states.
 
 ---
 
 ### 3. Data-Oriented Design (DOD)
 Most Roblox libraries rely heavily on Object-Oriented Programming (OOP). QuickZone is built entirely around Data-Oriented Design, prioritizing how the CPU actually reads memory.
+
+- **Structure of Arrays (SoA)**: QuickZone stores data in parallel, primitive arrays for maximum performance.
 
 - **Contiguous Memory**: QuickZone stores its LBVH and entity data in pre-allocated, flat arrays. This completely eliminates slow pointer-chasing and guarantees maximum CPU cache locality.
 
@@ -42,7 +43,7 @@ Most Roblox libraries rely heavily on Object-Oriented Programming (OOP). QuickZo
 
 - **Zero GC Pressure**: Because QuickZone relies on stable arrays and aggressive object pooling, it generates practically zero garbage during runtime. This completely eliminates the micro-stutters typically caused by Luau's Garbage Collector cleaning up old tables.
 
-- **Iterators**: QuickZone provides zero-allocation generators like `iterEntitiesInside()`. Because these iterators allocate no new memory, QuickZone is a perfect library for Entity Component System (ECS) workflows.
+- **Iterators**: QuickZone provides zero-allocation generators like `iterEntitiesInside`. Because these iterators allocate no new memory, QuickZone is a perfect library for Entity Component System (ECS) workflows.
 
 ---
 
@@ -57,7 +58,7 @@ A Group is a collection of entities that share logical categorization. An entity
 #### Observers
 Observers act as the logic bridge. They subscribe to Groups and are attached to Zones, creating a many-to-many relationship that keeps game logic decoupled and clean. Performance can be configured per Observer, like setting the update rate in Hz or the precision, i.e. the minimum distance threshold to perform a spatial query, in studs. This prevents wasting CPU cycles checking a slow-moving NPC, for example.
 
-Because Observers are decoupled from the physics engine, they can aggregate spatial data. Tracking an entire Group costs no additional spatial queries. And using `observeGroup()`, an Observer can fire an event when the first member of a Group enters a zone, and clean up when the last member leaves. 
+Because Observers are decoupled from the physics engine, they can aggregate spatial data. Tracking an entire Group costs no additional spatial queries. And through the use of `observeGroup`, an Observer can fire an event when the first member of a Group enters a zone, and clean up when the last member leaves. 
 
 ---
 
@@ -91,6 +92,9 @@ By separating static and dynamic zones, QuickZone minimizes the workload of the 
 :::info Frame budget
 Rebuilding the LBVHs is part of the frame budget. Thus, rebuilding will result in less time for processing the groups of entities.
 :::
+
+#### Demand-Driven Queries
+QuickZone will only perform a spatial query for an entity against the Dynamic LBVH if it is tracked by an Observer that is explicitly attached to a dynamic zone. If your observers only care about static zones, the dynamic tree is bypassed entirely for those entities, saving potentially thousands of unnecessary checks per second.
 
 ---
 
@@ -144,6 +148,6 @@ This test highlights the fundamental flaw in traditional Zone-Centric libraries.
 | Memory Usage (MB) | 2.13 | 159 | 1.77 | 2.60 | 1.04 |
 
 **The Result:** QuickZone is the only library that maintained near-baseline FPS (-1% impact).
-* ZonePlus caused a 28% drop in framerate, rendering the game choppy.
+* ZonePlus caused a 28% drop in framerate.
 * QuickZone handled the load with 98% less memory than ZonePlus.
-* QuickZone vs. QuickBounds: QuickZone squeezes out more performance, averaging ~1 FPS higher than QuickBounds. More importantly, QuickZone processed 4x the volume of events (2,271 vs 566).
+* QuickZone vs. QuickBounds: QuickZone averages ~1 FPS higher than QuickBounds. More importantly, QuickZone processed 4x the volume of events (2,271 vs 566).

@@ -13,7 +13,7 @@
 
 **Physics-Free Scaling.** QuickZone achieves *O(N log Z)* scaling by bypassing the physics engine in favor of pure geometric math and a custom Linear Bounding Volume Hierarchy (LBVH). Performance is driven by the number of entities, while the map size is virtually irrelevant.
 
-**Agnostic.** Whether you prefer classic event-driven programming, robust lifecycle management (`observe()`), or zero-allocation polling for ECS architectures, QuickZone can fit your workflow.
+**Agnostic.** Whether you prefer classic event-driven programming, robust lifecycle management, or zero-allocation iterators for ECS architectures, QuickZone can fit your workflow.
 
 **Total Performance Control.** The runtime cost is entirely in your control. Through a budgeted scheduler, the workload is smeared across frames and only consumes as much CPU time as you explicitly allow. Paired with contiguous arrays that produce virtually zero garbage collection (GC) pressure, QuickZone produces a flat, predictable performance profile.
 
@@ -25,14 +25,14 @@
 
 - **Budgeted Scheduler**: Set a hard frame budget (e.g., 1ms) to completely eliminate lag spikes. Workloads are smeared across frames to maintain a flat, predictable performance profile.
 
-- **Shape Support**: Support for Blocks, Balls, Cylinders, Wedges and CornerWedges without relying on physics collision meshes.
+- **Shape Support**: Built-in for Blocks, Balls, Cylinders, Wedges and CornerWedges without relying on physics collision meshes..
 
-- **Lifecycle Management**: Use the `observe` pattern for 100% reliable cleanup. Say goodbye to juggling `onEnter` and `onExit` events (though classic event-driven programming is still supported).
+- **Declarative Lifecycles**: Replace event-based logic with the observe pattern for declarative logic. There is no need to manually track `onEnter` and `onExit` states.
 
-- **ECS & Data-Oriented**: Built-in support for zero-allocation iterators and deterministic manual stepping, making it a perfect fit for ECS architectures.
+- **Decoupled Architecture**: Separate where tracking happens (Zones) from who is being tracked (Groups) and how the system responds (Observers). Bind complex behaviors to groups of entities with zero boilerplate.
 
-- **Decoupled Architecture**: Separate game logic from spatial instances. Bind behaviors directly to categories of entities (Players, NPCs, Projectiles) for a clean, scalable codebase.
+- **ECS-Ready**: Built-in support for zero-allocation iterators and deterministic manual stepping, making it a perfect fit for ECS architectures and data-oriented workflows
 
-- **Zero-Allocation Runtime**: By utilizing contiguous arrays and object pooling, QuickZone produces close to zero GC pressure, avoiding memory-related stutters.
+- **Zero-Allocation Runtime**: By utilizing contiguous arrays and object pooling, QuickZone produces virtually zero GC pressure to avoid memory-related stutters.
 
-- **No Dependencies**: QuickZone is a standalone, lightweight library that does not rely on any other external packages.
+- **Dynamic Zones**: Use moving zones at very little cost. QuickZone maintains separate Static and Dynamic LBVHs for maximum efficiency.

@@ -12,7 +12,7 @@ sidebar_position: 1
 
 **Physics-Free Scaling.** QuickZone achieves *O(N log Z)* scaling by bypassing the physics engine in favor of pure geometric math and a custom Linear Bounding Volume Hierarchy (LBVH). Performance is driven by the number of entities, while the map size is virtually irrelevant.
 
-**Agnostic.** Whether you prefer classic event-driven programming, robust lifecycle management (`observe()`), or zero-allocation polling for ECS architectures, QuickZone can fit your workflow.
+**Agnostic.** Whether you prefer classic event-driven programming, robust lifecycle management, or zero-allocation iterators for ECS architectures, QuickZone can fit your workflow.
 
 **Total Performance Control.** The runtime cost is entirely in your control. Through a budgeted scheduler, the workload is smeared across frames and only consumes as much CPU time as you explicitly allow. Paired with contiguous arrays that produce virtually zero garbage collection (GC) pressure, QuickZone produces a flat, predictable performance profile.
 
@@ -30,17 +30,17 @@ QuickZone uses point-based detection. It checks if a specific point (e.g., the c
 
 - **Budgeted Scheduler**: Set a hard frame budget (e.g., 1ms) to completely eliminate lag spikes. Workloads are smeared across frames to maintain a flat, predictable performance profile.
 
-- **Shape Support**: Support for Blocks, Balls, Cylinders, Wedges and CornerWedges without relying on physics collision meshes.
+- **Shape Support**: Built-in for Blocks, Balls, Cylinders, Wedges and CornerWedges without relying on physics collision meshes..
 
-- **Lifecycle Management**: Use the `observe` pattern for 100% reliable cleanup. Say goodbye to juggling `onEnter` and `onExit` events (though classic event-driven programming is still supported).
+- **Declarative Lifecycles**: Replace event-based logic with the observe pattern for declarative logic. There is no need to manually track `onEnter` and `onExit` states.
 
-- **ECS & Data-Oriented**: Built-in support for zero-allocation iterators and deterministic manual stepping, making it a perfect fit for ECS architectures.
+- **Decoupled Architecture**: Separate where tracking happens (Zones) from who is being tracked (Groups) and how the system responds (Observers). Bind complex behaviors to groups of entities with zero boilerplate.
 
-- **Decoupled Architecture**: Separate game logic from spatial instances. Bind behaviors directly to categories of entities (Players, NPCs, Projectiles) for a clean, scalable codebase.
+- **ECS-Ready**: Built-in support for zero-allocation iterators and deterministic manual stepping, making it a perfect fit for ECS architectures and data-oriented workflows
 
-- **Zero-Allocation Runtime**: By utilizing contiguous arrays and object pooling, QuickZone produces close to zero GC pressure, avoiding memory-related stutters.
+- **Zero-Allocation Runtime**: By utilizing contiguous arrays and object pooling, QuickZone produces virtually zero GC pressure to avoid memory-related stutters.
 
-- **No Dependencies**: QuickZone is a standalone, lightweight library that does not rely on any other external packages.
+- **Dynamic Zones**: Use moving zones at very little cost. QuickZone maintains separate Static and Dynamic LBVHs for maximum efficiency.
 
 ---
 
@@ -79,7 +79,7 @@ This test highlights the fundamental flaw in traditional Zone-Centric libraries.
 **The Result:** QuickZone is the only library that maintained near-baseline FPS (-1% impact).
 * ZonePlus caused a 28% drop in framerate.
 * QuickZone handled the load with 98% less memory than ZonePlus.
-* QuickZone vs. QuickBounds: QuickZone squeezes out more performance, averaging ~1 FPS higher than QuickBounds. More importantly, QuickZone processed 4x the volume of events (2,271 vs 566).
+* QuickZone vs. QuickBounds: QuickZone averages ~1 FPS higher than QuickBounds. More importantly, QuickZone processed 4x the volume of events (2,271 vs 566).
 
 ## Installation
 
@@ -87,7 +87,7 @@ This test highlights the fundamental flaw in traditional Zone-Centric libraries.
 Add the following to your wally.toml file:
 
 ```toml
-ldgerrits/quickzone@^1.3.186
+ldgerrits/quickzone@^1.3.187
 ```
 
 ### NPM
