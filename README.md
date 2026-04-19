@@ -17,6 +17,8 @@
 
 **Total Performance Control.** The runtime cost is entirely in your control. Through a budgeted scheduler, the workload is smeared across frames and only consumes as much CPU time as you explicitly allow. Paired with contiguous arrays that produce virtually zero garbage collection (GC) pressure, QuickZone produces a flat, predictable performance profile.
 
+**Unit Tested.** A rigorous unit testing suite ensures stable and predictable behavior across all systems.
+
 ## What it offers
 
 - **Endless Scale**: The number of zones has zero impact on performance. Maintain 60 FPS even with over a million zones in your game.

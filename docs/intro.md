@@ -16,6 +16,8 @@ sidebar_position: 1
 
 **Total Performance Control.** The runtime cost is entirely in your control. Through a budgeted scheduler, the workload is smeared across frames and only consumes as much CPU time as you explicitly allow. Paired with contiguous arrays that produce virtually zero garbage collection (GC) pressure, QuickZone produces a flat, predictable performance profile.
 
+**Unit Tested.** A rigorous unit testing suite ensures stable and predictable behavior across all systems.
+
 :::info Point-Based Detection
 QuickZone uses point-based detection. It checks if a specific point (e.g., the center of a Part, the position of an Attachment, or the Pivot of a Model) is inside a zone's boundary.
 :::
