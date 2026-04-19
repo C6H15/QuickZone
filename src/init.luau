@@ -1,5 +1,5 @@
 --!strict
---v1.3.2 • LDGerrits
+--v1.3.21 • LDGerrits
 --[=[
 	@class QuickZone
 
