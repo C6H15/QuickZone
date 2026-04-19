@@ -9,9 +9,9 @@
 
 **The Physics Bottleneck.** Traditional zone libraries act as wrappers for Roblox's physics engine (e.g., `GetPartsInPart` or `.Touched`), binding spatial logic to collision meshes. This results in expensive geometry calculations, unpredictable overhead, low flexibility, and much worse performance as the number of zones grows. 
 
-**Clean Architecture.** QuickZone takes a different approach. By separating *what* you track (Groups), *where* you track them (Zones), and *how* you respond (Observers), it eliminates monolithic, instance-bound logic and keeps your codebase clean. 
+**Clean Architecture.** By separating *what* you track (Groups), *where* you track them (Zones), and *how* you respond (Observers), QuickZone eliminates monolithic, instance-bound logic and keeps your codebase clean. 
 
-**Physics-Free Scaling.** QuickZone achieves *O(N log Z)* scaling by bypassing the physics engine in favor of pure geometric math and a custom Linear Bounding Volume Hierarchy (LBVH). Performance is driven by the number of entities, while the map size is virtually irrelevant.
+**Physics-Free Scaling.** QuickZone achieves *O(N log Z)* scaling by bypassing the physics engine in favor of pure geometric math and a custom Linear Bounding Volume Hierarchy (LBVH). Performance is driven by the number of entities, while the number of zones is virtually irrelevant.
 
 **Agnostic.** Whether you prefer classic event-driven programming, robust lifecycle management, or zero-allocation iterators for ECS architectures, QuickZone can fit your workflow.
 

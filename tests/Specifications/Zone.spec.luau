@@ -1,7 +1,7 @@
 --!strict
-local CollectionService = game:GetService("CollectionService")
-local ServerScriptService = game:GetService("ServerScriptService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CollectionService = game:GetService('CollectionService')
+local ServerScriptService = game:GetService('ServerScriptService')
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
 
 local TestFolder = ServerScriptService.Test
 
@@ -11,10 +11,10 @@ local Zone = QuickZone.Zone
 
 type Tiniest = typeof(require(TestFolder.Tiniest.tiniest_for_roblox).configure({}))
 
-local ShapeTypes = {"Block", "Ball", "Cylinder", "Wedge", "CornerWedge"}
+local ShapeTypes = { 'Block', 'Ball', 'Cylinder', 'Wedge', 'CornerWedge' }
 
 local function Create(Properties: { [string]: any }?, ClassName: string?): BasePart
-	local Part = Instance.new(ClassName or "Part") :: BasePart
+	local Part = Instance.new(ClassName or 'Part') :: BasePart
 	if Properties ~= nil then
 		for Property, Value in Properties do
 			(Part :: any)[Property] = Value
@@ -30,11 +30,11 @@ return function(Tiniest: Tiniest)
 	local Describe = Tiniest.describe
 	local Expect = Tiniest.expect
 
-	Describe("Zone.new", function()
+	Describe('Zone.new', function()
 		local cframe = CFrame.identity
 		local size = Vector3.one * 20
 
-		Test("Creates a zone for each shape.", function()
+		Test('Creates a zone for each shape.', function()
 			for _, shape in ShapeTypes do
 				local zone = Zone.new({
 					cframe = cframe,
@@ -47,27 +47,27 @@ return function(Tiniest: Tiniest)
 			end
 		end)
 
-		Test("Creates a dynamic zone with metadata.", function()
-			local metadata = { Name = "Test", Value = 100 }
+		Test('Creates a dynamic zone with metadata.', function()
+			local metadata = { Name = 'Test', Value = 100 }
 			local zone = Zone.new({
-					cframe = cframe,
-					size = size,
-					isDynamic = true,
-					metadata = metadata,
-				})
+				cframe = cframe,
+				size = size,
+				isDynamic = true,
+				metadata = metadata,
+			})
 
 			Expect(zone:isDynamic()).is_true()
 			Expect(zone:getMetadata()).is(metadata)
 			zone:destroy()
 		end)
 
-		Test("Creates a zone with proper defaults.", function()
+		Test('Creates a zone with proper defaults.', function()
 			local zone = Zone.new({
 				cframe = cframe,
 				size = size,
 			})
 
-			Expect(zone:getShape()).is("Block")
+			Expect(zone:getShape()).is('Block')
 			Expect(zone:getSize()).is(size)
 			Expect(zone:getCFrame()).is(cframe)
 			Expect(zone:getPosition()).is(cframe.Position)
@@ -79,11 +79,11 @@ return function(Tiniest: Tiniest)
 		end)
 	end)
 
-	Describe("Zone.fromPart", function()
+	Describe('Zone.fromPart', function()
 		local cframe = CFrame.new(5, 5, 10) * CFrame.Angles(0, math.pi / 4, 0)
 		local size = Vector3.one * 10
 
-		Test("Creates a zone using an existing part.", function()
+		Test('Creates a zone using an existing part.', function()
 			for _, shape in ShapeTypes do
 				local part = Create({
 					CFrame = cframe,
@@ -103,36 +103,36 @@ return function(Tiniest: Tiniest)
 			end
 		end)
 
-		Test("Creates a zone using a WedgePart.", function()
-			local part = Create(nil, "WedgePart")
+		Test('Creates a zone using a WedgePart.', function()
+			local part = Create(nil, 'WedgePart')
 			local zone = Zone.fromPart(part)
 
-			Expect(zone:getShape()).is("Wedge")
+			Expect(zone:getShape()).is('Wedge')
 			zone:destroy()
 			part:Destroy()
 		end)
 
-		Test("Creates a zone using a CornerWedgePart.", function()
-			local part = Create(nil, "CornerWedgePart")
+		Test('Creates a zone using a CornerWedgePart.', function()
+			local part = Create(nil, 'CornerWedgePart')
 			local zone = Zone.fromPart(part)
 
-			Expect(zone:getShape()).is("CornerWedge")
+			Expect(zone:getShape()).is('CornerWedge')
 			zone:destroy()
 			part:Destroy()
 		end)
 	end)
 
-	Describe("Zone:setCFrame", function()
+	Describe('Zone:setCFrame', function()
 		Test("Sets the zone's CFrame.", function()
 			local cframe = CFrame.Angles(0, math.pi / 4, 0) + Vector3.new(10, 15, 20)
-			local zone = Zone.new({cframe = CFrame.identity, size = Vector3.one * 5.5})
+			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 5.5 })
 
 			Expect(zone:setCFrame(cframe)).is(zone)
 			Expect(zone:getCFrame()).is(cframe)
 			zone:destroy()
 		end)
 
-		Test("Dynamic zone moved via setCFrame.", function()
+		Test('Dynamic zone moved via setCFrame.', function()
 			local point = Vector3.zero
 			local cframe = CFrame.new(0, 0, 15)
 			local zone = Zone.new({
@@ -150,11 +150,11 @@ return function(Tiniest: Tiniest)
 		end)
 	end)
 
-	Describe("Zone:setPosition", function()
+	Describe('Zone:setPosition', function()
 		Test("Sets the zone's position.", function()
 			local rotation = CFrame.Angles(0, math.pi / 4, 0)
 			local position = Vector3.new(25, 0, 0)
-			local zone = Zone.new({cframe = rotation, size = Vector3.one * 5.5})
+			local zone = Zone.new({ cframe = rotation, size = Vector3.one * 5.5 })
 
 			Expect(zone:setPosition(position)).is(zone)
 			Expect(zone:getPosition()).is(position)
@@ -164,11 +164,11 @@ return function(Tiniest: Tiniest)
 		end)
 	end)
 
-	Describe("Zone:setSize", function()
+	Describe('Zone:setSize', function()
 		Test("Sets the zone's size.", function()
 			local size = Vector3.one * 2.5
 			local point = Vector3.new(4, 0, 0)
-			local zone = Zone.new({cframe = CFrame.identity, size = Vector3.one * 10})
+			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 
 			Expect(zone:isPointInside(point)).is_true()
 			Expect(zone:setSize(size)).is(zone)
@@ -179,7 +179,7 @@ return function(Tiniest: Tiniest)
 		end)
 	end)
 
-	Describe("Zone:setShape", function()
+	Describe('Zone:setShape', function()
 		Test("Sets the zone's shape.", function()
 			local point = Vector3.new(4, 4, 4)
 			local zone = Zone.new({
@@ -188,16 +188,16 @@ return function(Tiniest: Tiniest)
 			})
 
 			Expect(zone:isPointInside(point)).is_true()
-			Expect(zone:setShape("Ball")).is(zone)
-			Expect(zone:getShape()).is("Ball")
+			Expect(zone:setShape('Ball')).is(zone)
+			Expect(zone:getShape()).is('Ball')
 			Expect(zone:isPointInside(point)).never_is_true()
 
 			zone:destroy()
 		end)
 	end)
 
-	Describe("Zone:setDynamic", function()
-		Test("Dynamic zone changed to static.", function()
+	Describe('Zone:setDynamic', function()
+		Test('Dynamic zone changed to static.', function()
 			local zone = Zone.new({
 				cframe = CFrame.identity,
 				size = Vector3.one * 10,
@@ -213,10 +213,10 @@ return function(Tiniest: Tiniest)
 		end)
 	end)
 
-	Describe("Zone:setMetadata", function()
+	Describe('Zone:setMetadata', function()
 		Test("Sets the zone's metadata.", function()
-			local metadata = { Name = "Test", Value = 100 }
-			local zone = Zone.new({cframe = CFrame.identity, size = Vector3.one * 10})
+			local metadata = { Name = 'Test', Value = 100 }
+			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 
 			Expect(zone:getMetadata()).is()
 			Expect(zone:setMetadata(metadata)).is(zone)
@@ -226,10 +226,10 @@ return function(Tiniest: Tiniest)
 		end)
 	end)
 
-	Describe("Zone:setReference", function()
+	Describe('Zone:setReference', function()
 		Test("Sets and clears the zone's reference.", function()
 			local part = Create()
-			local zone = Zone.new({cframe = CFrame.identity, size = Vector3.one * 10})
+			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 
 			Expect(zone:getReference()).is()
 			Expect(zone:setReference(part)).is(zone)
@@ -241,10 +241,10 @@ return function(Tiniest: Tiniest)
 			part:Destroy()
 		end)
 
-		Test("Attach auto-sync to the new reference.", function()
-			local partA = Create({Size = Vector3.one * 10})
-			local partB = Create({Size = Vector3.one * 10})
-			local zone = Zone.fromPart(partA, {autoSync = true})
+		Test('Attach auto-sync to the new reference.', function()
+			local partA = Create({ Size = Vector3.one * 10 })
+			local partB = Create({ Size = Vector3.one * 10 })
+			local zone = Zone.fromPart(partA, { autoSync = true })
 
 			Expect(zone:setReference(partB)).is(zone)
 
@@ -260,8 +260,8 @@ return function(Tiniest: Tiniest)
 		end)
 	end)
 
-	Describe("Zone:setAutoSync", function()
-		Test("Automatically changes a static zone to dynamic.", function()
+	Describe('Zone:setAutoSync', function()
+		Test('Automatically changes a static zone to dynamic.', function()
 			local part = Create()
 			local zone = Zone.fromPart(part)
 
@@ -273,10 +273,10 @@ return function(Tiniest: Tiniest)
 			part:Destroy()
 		end)
 
-		Test("Syncs CFrame via scheduler update.", function()
+		Test('Syncs CFrame via scheduler update.', function()
 			local cframe = CFrame.new(50, 0, 0)
 			local part = Create()
-			local zone = Zone.fromPart(part, {autoSync = true})
+			local zone = Zone.fromPart(part, { autoSync = true })
 
 			part.CFrame = cframe
 			QuickZone:update(1 / 10)
@@ -286,9 +286,9 @@ return function(Tiniest: Tiniest)
 			part:Destroy()
 		end)
 
-		Test("Disabling stops future syncing.", function()
+		Test('Disabling stops future syncing.', function()
 			local part = Create()
-			local zone = Zone.fromPart(part, {autoSync = true})
+			local zone = Zone.fromPart(part, { autoSync = true })
 
 			part.CFrame = CFrame.new(10, 0, 0)
 			QuickZone:update(1 / 10)
@@ -304,10 +304,10 @@ return function(Tiniest: Tiniest)
 			part:Destroy()
 		end)
 
-		Test("Auto-syncs size.", function()
+		Test('Auto-syncs size.', function()
 			local size = Vector3.one * 20
-			local part = Create({Size = Vector3.one * 10})
-			local zone = Zone.fromPart(part, {autoSync = true})
+			local part = Create({ Size = Vector3.one * 10 })
+			local zone = Zone.fromPart(part, { autoSync = true })
 
 			part.Size = size
 			task.wait() -- Deferring for GetPropertyChangedSignal.
@@ -317,24 +317,24 @@ return function(Tiniest: Tiniest)
 			part:Destroy()
 		end)
 
-		Test("Auto-syncs shape.", function()
-			local part = Create({Shape = Enum.PartType.Block}) :: Part
-			local zone = Zone.fromPart(part, {autoSync = true})
+		Test('Auto-syncs shape.', function()
+			local part = Create({ Shape = Enum.PartType.Block }) :: Part
+			local zone = Zone.fromPart(part, { autoSync = true })
 
 			part.Shape = Enum.PartType.Ball
 			task.wait() -- Deferring for GetPropertyChangedSignal.
 
-			Expect(zone:getShape()).is("Ball")
+			Expect(zone:getShape()).is('Ball')
 			zone:destroy()
 			part:Destroy()
 		end)
 	end)
 
-	Describe("Zone:sync", function()
-		Test("Gets CFrame, size, and shape from reference.", function()
+	Describe('Zone:sync', function()
+		Test('Gets CFrame, size, and shape from reference.', function()
 			local cframe = CFrame.new(50, 0, 0)
 			local size = Vector3.one * 20
-			local part = Create({Size = Vector3.one * 10}) :: Part
+			local part = Create({ Size = Vector3.one * 10 }) :: Part
 			local zone = Zone.fromPart(part)
 
 			part.CFrame = cframe
@@ -344,15 +344,15 @@ return function(Tiniest: Tiniest)
 			Expect(zone:sync()).is(zone)
 			Expect(zone:getCFrame()).is(cframe)
 			Expect(zone:getSize()).is(size)
-			Expect(zone:getShape()).is("Ball")
+			Expect(zone:getShape()).is('Ball')
 
 			zone:destroy()
 			part:Destroy()
 		end)
 
-		Test("Gets WorldCFrame from an Attachment reference.", function()
+		Test('Gets WorldCFrame from an Attachment reference.', function()
 			local cframe = CFrame.new(50, 0, 0)
-			local attachment = Instance.new("Attachment")
+			local attachment = Instance.new('Attachment')
 			local zone = Zone.new({
 				cframe = CFrame.identity,
 				size = Vector3.one * 10,
@@ -370,12 +370,12 @@ return function(Tiniest: Tiniest)
 		end)
 	end)
 
-	Describe("Zone:getId", function()
-		Test("Returns a unique number per zone.", function()
-			local zoneA = Zone.new({cframe = CFrame.identity, size = Vector3.one * 5})
-			local zoneB = Zone.new({cframe = CFrame.identity, size = Vector3.one * 15})
+	Describe('Zone:getId', function()
+		Test('Returns a unique number per zone.', function()
+			local zoneA = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 5 })
+			local zoneB = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 15 })
 
-			Expect(zoneA:getId()).is_a("number")
+			Expect(zoneA:getId()).is_a('number')
 			Expect(zoneA:getId()).never_is(zoneB:getId())
 
 			zoneA:destroy()
@@ -383,13 +383,13 @@ return function(Tiniest: Tiniest)
 		end)
 	end)
 
-	Describe("Zone:isPointInside", function()
+	Describe('Zone:isPointInside', function()
 		local size = Vector3.one * 10
 		local rotation = CFrame.Angles(0, math.pi / 4, 0)
 
-		Test("Block", function()
-			local zoneA = Zone.new({cframe = CFrame.identity, size = size})
-			local zoneB = Zone.new({cframe = rotation, size = size})
+		Test('Block', function()
+			local zoneA = Zone.new({ cframe = CFrame.identity, size = size })
+			local zoneB = Zone.new({ cframe = rotation, size = size })
 
 			Expect(zoneA:isPointInside(Vector3.zero)).is_true()
 			Expect(zoneA:isPointInside(Vector3.new(4.9, 4.9, 4.9))).is_true()
@@ -404,9 +404,9 @@ return function(Tiniest: Tiniest)
 			zoneB:destroy()
 		end)
 
-		Test("Ball", function()
-			local zoneA = Zone.new({cframe = CFrame.identity, size = size, shape = "Ball"})
-			local zoneB = Zone.new({cframe = rotation, size = size, shape = "Ball"})
+		Test('Ball', function()
+			local zoneA = Zone.new({ cframe = CFrame.identity, size = size, shape = 'Ball' })
+			local zoneB = Zone.new({ cframe = rotation, size = size, shape = 'Ball' })
 
 			Expect(zoneA:isPointInside(Vector3.zero)).is_true()
 			Expect(zoneA:isPointInside(Vector3.new(4.9, 0, 0))).is_true()
@@ -421,9 +421,9 @@ return function(Tiniest: Tiniest)
 			zoneB:destroy()
 		end)
 
-		Test("Cylinder", function()
-			local zoneA = Zone.new({cframe = CFrame.identity, size = size, shape = "Cylinder"})
-			local zoneB = Zone.new({cframe = rotation, size = size, shape = "Cylinder"})
+		Test('Cylinder', function()
+			local zoneA = Zone.new({ cframe = CFrame.identity, size = size, shape = 'Cylinder' })
+			local zoneB = Zone.new({ cframe = rotation, size = size, shape = 'Cylinder' })
 
 			Expect(zoneA:isPointInside(Vector3.zero)).is_true()
 			Expect(zoneA:isPointInside(Vector3.new(4.9, 0, 0))).is_true()
@@ -440,9 +440,9 @@ return function(Tiniest: Tiniest)
 			zoneB:destroy()
 		end)
 
-		Test("Wedge", function()
-			local zoneA = Zone.new({cframe = CFrame.identity, size = size, shape = "Wedge"})
-			local zoneB = Zone.new({cframe = rotation, size = size, shape = "Wedge"})
+		Test('Wedge', function()
+			local zoneA = Zone.new({ cframe = CFrame.identity, size = size, shape = 'Wedge' })
+			local zoneB = Zone.new({ cframe = rotation, size = size, shape = 'Wedge' })
 
 			Expect(zoneA:isPointInside(Vector3.new(0, -4, 0))).is_true()
 			Expect(zoneA:isPointInside(Vector3.new(0, -4, 4))).is_true()
@@ -457,9 +457,9 @@ return function(Tiniest: Tiniest)
 			zoneB:destroy()
 		end)
 
-		Test("CornerWedge", function()
-			local zoneA = Zone.new({cframe = CFrame.identity, size = size, shape = "CornerWedge"})
-			local zoneB = Zone.new({cframe = rotation, size = size, shape = "CornerWedge"})
+		Test('CornerWedge', function()
+			local zoneA = Zone.new({ cframe = CFrame.identity, size = size, shape = 'CornerWedge' })
+			local zoneB = Zone.new({ cframe = rotation, size = size, shape = 'CornerWedge' })
 
 			Expect(zoneA:isPointInside(Vector3.new(0, -4, 0))).is_true()
 			Expect(zoneA:isPointInside(Vector3.new(4, -4, -4))).is_true()
@@ -475,13 +475,17 @@ return function(Tiniest: Tiniest)
 		end)
 	end)
 
-	Describe("Zone:onDestroy", function()
+	Describe('Zone:onDestroy', function()
 		Test("Fires connected callbacks and disconnected doesn't fire.", function()
 			local firedA, firedB = 0, 0
-			local zone = Zone.new({cframe = CFrame.identity, size = Vector3.one * 10})
+			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 
-			zone:onDestroy(function() firedA += 1 end)
-			zone:onDestroy(function() firedB += 1 end)()
+			zone:onDestroy(function()
+				firedA += 1
+			end)
+			zone:onDestroy(function()
+				firedB += 1
+			end)()
 			zone:destroy()
 
 			Expect(firedA).is(1)
@@ -489,9 +493,9 @@ return function(Tiniest: Tiniest)
 		end)
 	end)
 
-	Describe("Zone.fromParts", function()
-		Test("Creates a Zones container with one inner zone per part.", function()
-			local parts = {Create(), Create(), Create()}
+	Describe('Zone.fromParts', function()
+		Test('Creates a Zones container with one inner zone per part.', function()
+			local parts = { Create(), Create(), Create() }
 			local seen = {}
 			local zones = Zone.fromParts(parts)
 
@@ -511,10 +515,10 @@ return function(Tiniest: Tiniest)
 		end)
 	end)
 
-	Describe("Zone.fromChildren", function()
-		Test("Gets direct children only.", function()
-			local parentFolder = Instance.new("Folder")
-			local childFolder = Instance.new("Folder")
+	Describe('Zone.fromChildren', function()
+		Test('Gets direct children only.', function()
+			local parentFolder = Instance.new('Folder')
+			local childFolder = Instance.new('Folder')
 			Create().Parent = parentFolder
 			Create().Parent = childFolder
 			childFolder.Parent = parentFolder
@@ -527,8 +531,8 @@ return function(Tiniest: Tiniest)
 			parentFolder:Destroy()
 		end)
 
-		Test("Tracks children added and removed.", function()
-			local parentFolder = Instance.new("Folder")
+		Test('Tracks children added and removed.', function()
+			local parentFolder = Instance.new('Folder')
 			local partA = Create()
 			local partB = Create()
 			partA.Parent = parentFolder
@@ -552,10 +556,10 @@ return function(Tiniest: Tiniest)
 		end)
 	end)
 
-	Describe("Zone.fromDescendants", function()
-		Test("Gets nested descendants, not just direct children.", function()
-			local parentFolder = Instance.new("Folder")
-			local childFolder = Instance.new("Folder")
+	Describe('Zone.fromDescendants', function()
+		Test('Gets nested descendants, not just direct children.', function()
+			local parentFolder = Instance.new('Folder')
+			local childFolder = Instance.new('Folder')
 			Create().Parent = parentFolder
 			Create().Parent = childFolder
 			childFolder.Parent = parentFolder
@@ -568,9 +572,9 @@ return function(Tiniest: Tiniest)
 			parentFolder:Destroy()
 		end)
 
-		Test("Tracks descendants added and removed.", function()
-			local parentFolder = Instance.new("Folder")
-			local childFolder = Instance.new("Folder")
+		Test('Tracks descendants added and removed.', function()
+			local parentFolder = Instance.new('Folder')
+			local childFolder = Instance.new('Folder')
 			local partA = Create()
 			local partB = Create()
 			partA.Parent = childFolder
@@ -595,9 +599,9 @@ return function(Tiniest: Tiniest)
 		end)
 	end)
 
-	Describe("Zone.fromTag", function()
-		Test("Populates from instances already tagged.", function()
-			local tag = "QZFromTagPreExisting"
+	Describe('Zone.fromTag', function()
+		Test('Populates from instances already tagged.', function()
+			local tag = 'QZFromTagPreExisting'
 			local partA = Create()
 			local partB = Create()
 			CollectionService:AddTag(partA, tag)
@@ -614,8 +618,8 @@ return function(Tiniest: Tiniest)
 			partB:Destroy()
 		end)
 
-		Test("Tracks tag added and removed.", function()
-			local tag = "QZFromTagExisting"
+		Test('Tracks tag added and removed.', function()
+			local tag = 'QZFromTagExisting'
 			local partA = Create()
 			local partB = Create()
 			CollectionService:AddTag(partA, tag)
@@ -642,12 +646,12 @@ return function(Tiniest: Tiniest)
 	end)
 
 	-- Zones are covered below.
-	Describe("Zones", function()
-		Test("Returns true for inner zones and false for outer zones.", function()
-			local parts = {Create(), Create()}
+	Describe('Zones', function()
+		Test('Returns true for inner zones and false for outer zones.', function()
+			local parts = { Create(), Create() }
 			local zones = Zone.fromParts(parts)
-			local outer = Zone.new({cframe = CFrame.identity, size = Vector3.one * 5})
-			
+			local outer = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 5 })
+
 			for _, inner in zones:getZones() do
 				Expect(zones:contains(inner)).is_true()
 			end
@@ -661,8 +665,8 @@ return function(Tiniest: Tiniest)
 			end
 		end)
 
-		Test("Iteration methods yield every entry once.", function()
-			local parts = {Create(), Create(), Create()}
+		Test('Iteration methods yield every entry once.', function()
+			local parts = { Create(), Create(), Create() }
 			local seenZones, seenReferences = {}, {}
 			local zoneCount = 0
 			local zones = Zone.fromParts(parts)
@@ -691,8 +695,8 @@ return function(Tiniest: Tiniest)
 			end
 		end)
 
-		Test("Zones set to dynamic.", function()
-			local parts = {Create(), Create()}
+		Test('Zones set to dynamic.', function()
+			local parts = { Create(), Create() }
 			local zones = Zone.fromParts(parts)
 
 			Expect(zones:isDynamic()).never_is_true()
@@ -709,9 +713,9 @@ return function(Tiniest: Tiniest)
 			end
 		end)
 
-		Test("Zones set with metadata.", function()
+		Test('Zones set with metadata.', function()
 			local metadata = { Value = 5 }
-			local parts = {Create(), Create()}
+			local parts = { Create(), Create() }
 			local zones = Zone.fromParts(parts)
 
 			zones:setMetadata(metadata)
@@ -727,11 +731,11 @@ return function(Tiniest: Tiniest)
 			end
 		end)
 
-		Test("Zones set to auto-sync.", function()
+		Test('Zones set to auto-sync.', function()
 			local partA = Create()
-			local partB = Create({CFrame = CFrame.new(100, 0, 0)})
+			local partB = Create({ CFrame = CFrame.new(100, 0, 0) })
 			local matches = 0
-			local zones = Zone.fromParts({partA, partB})
+			local zones = Zone.fromParts({ partA, partB })
 
 			zones:setAutoSync(true)
 
@@ -744,7 +748,9 @@ return function(Tiniest: Tiniest)
 			QuickZone:update(1 / 10)
 
 			for reference, inner in zones:iterReferences() do
-				if inner == nil then continue end
+				if inner == nil then
+					continue
+				end
 				if reference == partA then
 					Expect(inner:getPosition()).is(Vector3.new(50, 0, 0))
 					matches += 1
@@ -760,18 +766,20 @@ return function(Tiniest: Tiniest)
 			partB:Destroy()
 		end)
 
-		Test("Sync updates every inner zone from its reference.", function()
+		Test('Sync updates every inner zone from its reference.', function()
 			local partA = Create()
-			local partB = Create({CFrame = CFrame.new(100, 0, 0)})
+			local partB = Create({ CFrame = CFrame.new(100, 0, 0) })
 			local matches = 0
-			local zones = Zone.fromParts({partA, partB}, {isDynamic = true})
+			local zones = Zone.fromParts({ partA, partB }, { isDynamic = true })
 
 			partA.CFrame = CFrame.new(50, 0, 0)
 			partB.CFrame = CFrame.new(150, 0, 0)
 			zones:sync()
 
 			for reference, inner in zones:iterReferences() do
-				if inner == nil then continue end
+				if inner == nil then
+					continue
+				end
 				if reference == partA then
 					Expect(inner:getPosition()).is(Vector3.new(50, 0, 0))
 					matches += 1
@@ -787,10 +795,10 @@ return function(Tiniest: Tiniest)
 			partB:Destroy()
 		end)
 
-		Test("Returns true inside any inner zone, false outside.", function()
-			local partA = Create({Size = Vector3.one * 10})
-			local partB = Create({CFrame = CFrame.new(100, 0, 0), Size = Vector3.one * 10})
-			local zones = Zone.fromParts({partA, partB})
+		Test('Returns true inside any inner zone, false outside.', function()
+			local partA = Create({ Size = Vector3.one * 10 })
+			local partB = Create({ CFrame = CFrame.new(100, 0, 0), Size = Vector3.one * 10 })
+			local zones = Zone.fromParts({ partA, partB })
 
 			Expect(zones:isPointInside(Vector3.zero)).is_true()
 			Expect(zones:isPointInside(Vector3.new(100, 0, 0))).is_true()
@@ -802,12 +810,16 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test("Zones fire connected callbacks and disconnected doesn't fire.", function()
-			local parts = {Create(), Create()}
+			local parts = { Create(), Create() }
 			local firedA, firedB = 0, 0
 			local zones = Zone.fromParts(parts)
 
-			zones:onDestroy(function() firedA += 1 end)
-			zones:onDestroy(function() firedB += 1 end)()
+			zones:onDestroy(function()
+				firedA += 1
+			end)
+			zones:onDestroy(function()
+				firedB += 1
+			end)()
 			zones:destroy()
 
 			Expect(firedA).is(1)

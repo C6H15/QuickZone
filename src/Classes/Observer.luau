@@ -56,6 +56,7 @@ end
 
 local function disconnectObserverFromGroup(observerId: number, group: Types.InternalGroup)
 	local safety = State.observerSafety[observerId]
+	local isEnabled = State.observerEnabled[observerId]
 
 	for _, entity in group.entities do
 		local data = State.entityData[entity]
@@ -72,10 +73,13 @@ local function disconnectObserverFromGroup(observerId: number, group: Types.Inte
 		end
 
 		local stillTracked = false
-		for groupId in State.entityToGroups[entity] do
-			if State.groupToObservers[groupId] and State.groupToObservers[groupId][observerId] then
-				stillTracked = true
-				break
+
+		if isEnabled then
+			for groupId in State.entityToGroups[entity] do
+				if State.groupToObservers[groupId] and State.groupToObservers[groupId][observerId] then
+					stillTracked = true
+					break
+				end
 			end
 		end
 

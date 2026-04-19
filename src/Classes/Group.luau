@@ -377,8 +377,7 @@ function Group.setAutoClean(self: Types.InternalGroup, enabled: boolean): Types.
 end
 
 --[=[ 
-	Adds an entity to the group. If the entity is already in another group, 
-	it is automatically removed from the old one first.
+	Adds an entity to the group.
 
 	#### Example: Adding Different Entity Types
 	```lua
