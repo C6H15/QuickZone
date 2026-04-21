@@ -643,6 +643,98 @@ return function(Tiniest: Tiniest)
 			partA:Destroy()
 			partB:Destroy()
 		end)
+
+		Test('Creates zones for all BasePart descendants when a container is tagged.', function()
+			local tag = 'QZContainerTag'
+			local model = Instance.new('Model')
+			local folder = Instance.new('Folder')
+			local partA = Create()
+			local partB = Create()
+			partA.Parent = model
+			partB.Parent = folder
+			model.Parent = workspace
+			folder.Parent = model
+
+			local zones = Zone.fromTag(tag)
+
+			CollectionService:AddTag(model, tag)
+			task.wait()
+			Expect(#zones:getZones()).is(2)
+
+			local partC = Create()
+			partC.Parent = folder
+			task.wait()
+			Expect(#zones:getZones()).is(3)
+
+			zones:destroy()
+			model:Destroy()
+			folder:Destroy()
+			partA:Destroy()
+			partB:Destroy()
+			partC:Destroy()
+		end)
+
+		Test('Collision Fix: Zone survives if child and parent are both tagged and one tag is removed.', function()
+			local tag = 'QZCollisionTag'
+			local model = Instance.new('Model')
+			local part = Create()
+			part.Parent = model
+			model.Parent = workspace
+
+			local zones = Zone.fromTag(tag)
+
+			-- Tag the model
+			CollectionService:AddTag(model, tag)
+			task.wait()
+			Expect(#zones:getZones()).is(1)
+
+			-- Tag the part directly
+			CollectionService:AddTag(part, tag)
+			task.wait()
+			Expect(#zones:getZones()).is(1)
+
+			-- Remove tag from model
+			CollectionService:RemoveTag(model, tag)
+			task.wait()
+			Expect(#zones:getZones()).is(1)
+
+			-- Remove tag from part
+			CollectionService:RemoveTag(part, tag)
+			task.wait()
+
+			Expect(#zones:getZones()).is(0)
+
+			zones:destroy()
+			model:Destroy()
+			part:Destroy()
+		end)
+
+		Test('Cleans up container connections when container leaves workspace.', function()
+			local tag = 'QZAncestryCleanup'
+			local model = Instance.new('Model')
+			local part = Create()
+			part.Parent = model
+			model.Parent = workspace
+			CollectionService:AddTag(model, tag)
+
+			local zones = Zone.fromTag(tag)
+			task.wait()
+			Expect(#zones:getZones()).is(1)
+
+			model.Parent = nil
+			task.wait()
+
+			Expect(#zones:getZones()).is(0)
+
+			model.Parent = workspace
+			task.wait()
+
+			Expect(#zones:getZones()).is(1)
+
+			zones:destroy()
+			model:Destroy()
+			part:Destroy()
+		end)
 	end)
 
 	-- Zones are covered below.

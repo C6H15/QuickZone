@@ -459,6 +459,7 @@ end
 
 --[=[
 	Dynamically creates and manages Zones for all BaseParts with a specific CollectionService tag.
+	If the tag is applied to a container (e.g., a Model or a Folder), it will create zones for all BasePart descendants.
 	
 	@tag Constructor
 	@within Zone
@@ -474,7 +475,6 @@ function Zone.fromTag(
 		autoSync: boolean?,
 	}?
 ): Types.Zones
-	-- Create Zones
 	local isDynamic = if config and config.isDynamic ~= nil then config.isDynamic else false
 	local metadata = if config and config.metadata ~= nil then config.metadata else nil
 	local autoSync = if config and config.autoSync ~= nil then config.autoSync else false
@@ -485,48 +485,118 @@ function Zone.fromTag(
 		autoSync = autoSync,
 	}) :: Types.InternalZones
 
-	-- Handle dynamic creation and destruction of zones based on tag
-	local watchingInstances = {} :: { [Instance]: RBXScriptConnection }
-	local instanceToZone = {} :: { [Instance]: Types.Zone }
+	local watchingAncestry = {} :: { [Instance]: RBXScriptConnection }
+	local containerConnections = {} :: { [Instance]: { RBXScriptConnection } }
+	local instanceToZone = {} :: { [BasePart]: Types.Zone }
+	local partRefCount = {} :: { [BasePart]: number }
 
-	local function checkAncestry(instance: Instance)
-		local inWorkspace = instance:IsDescendantOf(workspace)
-		if inWorkspace and not instanceToZone[instance] then
-			if instance:IsA('BasePart') then
-				local newZone = Zone.fromPart(instance, {
-					isDynamic = isDynamic,
-					metadata = zones.metadata,
-				})
-				instanceToZone[instance] = newZone
-				zones:add(newZone)
+	local function addPart(part: BasePart)
+		local count = (partRefCount[part] or 0) + 1
+		partRefCount[part] = count
+
+		-- Only create the zone if this is the first time
+		if count == 1 then
+			local newZone = Zone.fromPart(part, {
+				isDynamic = isDynamic,
+				metadata = zones.metadata,
+				autoSync = autoSync,
+			})
+			instanceToZone[part] = newZone
+			zones:add(newZone)
+		end
+	end
+
+	local function removePart(part: BasePart)
+		local count = (partRefCount[part] or 0) - 1
+
+		if count <= 0 then -- No more active tags claim this part, so safe to destroy
+			partRefCount[part] = nil
+			local deadZone = instanceToZone[part]
+			if deadZone then
+				instanceToZone[part] = nil
+				deadZone:destroy()
 			end
-		elseif not inWorkspace and instanceToZone[instance] then
-			local deadZone = instanceToZone[instance]
-			instanceToZone[instance] = nil
-			deadZone:destroy()
+		else
+			partRefCount[part] = count
+		end
+	end
+
+	local function processTaggedInstance(instance: Instance)
+		local inWorkspace = instance:IsDescendantOf(workspace)
+		if inWorkspace then
+			if instance:IsA('BasePart') then
+				addPart(instance)
+			else
+				if not containerConnections[instance] then
+					local addedConn = instance.DescendantAdded:Connect(function(descendant)
+						if descendant:IsA('BasePart') then
+							addPart(descendant)
+						end
+					end)
+					local removedConn = instance.DescendantRemoving:Connect(function(descendant)
+						if descendant:IsA('BasePart') then
+							removePart(descendant)
+						end
+					end)
+					containerConnections[instance] = { addedConn, removedConn }
+
+					for _, descendant in instance:GetDescendants() do
+						if descendant:IsA('BasePart') then
+							addPart(descendant)
+						end
+					end
+				end
+			end
+		else
+			if instance:IsA('BasePart') then
+				removePart(instance)
+			else
+				local conns = containerConnections[instance]
+				if conns then
+					conns[1]:Disconnect()
+					conns[2]:Disconnect()
+					containerConnections[instance] = nil
+				end
+				for _, descendant in instance:GetDescendants() do
+					if descendant:IsA('BasePart') then
+						removePart(descendant)
+					end
+				end
+			end
 		end
 	end
 
 	local function startWatching(instance: Instance)
-		if watchingInstances[instance] or not instance:IsA('BasePart') then
+		if watchingAncestry[instance] then
 			return
 		end
-		watchingInstances[instance] = instance.AncestryChanged:Connect(function()
-			checkAncestry(instance)
+		watchingAncestry[instance] = instance.AncestryChanged:Connect(function()
+			processTaggedInstance(instance)
 		end)
-		checkAncestry(instance)
+		processTaggedInstance(instance)
 	end
 
 	local function stopWatching(instance: Instance)
-		local conn = watchingInstances[instance]
+		local conn = watchingAncestry[instance]
 		if conn then
 			conn:Disconnect()
-			watchingInstances[instance] = nil
+			watchingAncestry[instance] = nil
 		end
-		if instanceToZone[instance] then
-			local oldZone = instanceToZone[instance]
-			instanceToZone[instance] = nil
-			oldZone:destroy()
+
+		if instance:IsA('BasePart') then
+			removePart(instance)
+		else
+			local conns = containerConnections[instance]
+			if conns then
+				conns[1]:Disconnect()
+				conns[2]:Disconnect()
+				containerConnections[instance] = nil
+			end
+			for _, descendant in instance:GetDescendants() do
+				if descendant:IsA('BasePart') then
+					removePart(descendant)
+				end
+			end
 		end
 	end
 
@@ -539,11 +609,13 @@ function Zone.fromTag(
 	zones:onDestroy(function()
 		addedConn:Disconnect()
 		removedConn:Disconnect()
-		for inst in watchingInstances do
+		for inst in watchingAncestry do
 			stopWatching(inst)
 		end
-		table.clear(watchingInstances)
+		table.clear(watchingAncestry)
+		table.clear(containerConnections)
 		table.clear(instanceToZone)
+		table.clear(partRefCount)
 	end)
 
 	return zones
