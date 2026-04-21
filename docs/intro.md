@@ -28,7 +28,7 @@ QuickZone uses point-based detection. It checks if a specific point (e.g., the c
 
 - **Endless Scale**: The number of zones has zero impact on performance. Maintain 60 FPS even with over a million zones in your game.
 
-- **Track Anything**: Track BaseParts, Models, Attachments, Bones, Cameras, or even custom tables. If it has a position, QuickZone can track it.
+- **Track Anything**: Track Players, BaseParts, Models, Attachments, Bones, Cameras, or even custom tables. If it has a position, QuickZone can track it.
 
 - **Budgeted Scheduler**: Set a hard frame budget (e.g., 1ms) to completely eliminate lag spikes. Workloads are smeared across frames to maintain a flat, predictable performance profile.
 

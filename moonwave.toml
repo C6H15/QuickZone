@@ -21,7 +21,7 @@ description = "The number of zones has zero impact on performance. Maintain 60 F
 
 [[home.features]]
 title = "Track Anything"
-description = "Track BaseParts, Models, Attachments, Bones, Cameras, or even custom tables. If it has a position, QuickZone can track it."
+description = "Track Players, BaseParts, Models, Attachments, Bones, Cameras, or even custom tables. If it has a position, QuickZone can track it."
 
 [[home.features]]
 title = "Budgeted Scheduler"

@@ -26,10 +26,10 @@ export type EntityTable = {
 }
 
 --[=[
-	@type Entity BasePart | Model | Camera | Attachment | Bone | EntityTable
+	@type Entity Player | BasePart | Model | Camera | Attachment | Bone | EntityTable
 	@within QuickZone
 ]=]
-export type Entity = BasePart | Model | Camera | Attachment | Bone | EntityTable
+export type Entity = Player | BasePart | Model | Camera | Attachment | Bone | EntityTable
 
 export type BoundingVolume = {
 	position: Vector3,
