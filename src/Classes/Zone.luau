@@ -1195,7 +1195,9 @@ function Zone.destroy(self: Types.InternalZone): ()
 	end
 
 	if self.onDestroyCallbacks then
-		for _, callback in self.onDestroyCallbacks do
+		-- The table must be cloned to avoid iterator shifts
+		local onDestroyCallbacks = table.clone(self.onDestroyCallbacks)
+		for _, callback in onDestroyCallbacks do
 			task.spawn(callback)
 		end
 		table.clear(self.onDestroyCallbacks)
