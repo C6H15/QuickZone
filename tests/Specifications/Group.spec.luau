@@ -10,16 +10,22 @@ local Group = QuickZone.Group
 
 type Tiniest = typeof(require(TestFolder.Tiniest.tiniest_for_roblox).configure({}))
 
-local function Create(Properties: { [string]: any }?, ClassName: string?): BasePart
-	local Part = Instance.new(ClassName or 'Part') :: BasePart
-	if Properties ~= nil then
-		for Property, Value in Properties do
-			(Part :: any)[Property] = Value
+local function create(properties: { [string]: any }?, className: string?): BasePart
+	local part = Instance.new(className or 'Part') :: BasePart
+	if properties ~= nil then
+		for property, value in properties do
+			(part :: any)[property] = value
 		end
 	end
-	Part.Anchored = true
-	Part.Parent = workspace
-	return Part
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.AudioCanCollide = false
+	part.Transparency = 1
+	part.EnableFluidForces = false
+	part.Parent = workspace
+	return part
 end
 
 return function(Tiniest: Tiniest)
@@ -36,7 +42,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Creates a group with initial entities.', function()
-			local parts = { Create(), Create(), Create() }
+			local parts = { create(), create(), create() }
 			local group = Group.new({ entities = parts })
 
 			Expect(#group:getEntities()).is(#parts)
@@ -51,7 +57,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('autoClean true for destroyed entities.', function()
-			local part = Create()
+			local part = create()
 			local group = Group.new({ entities = { part } })
 
 			Expect(group:contains(part)).is_true()
@@ -63,7 +69,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('autoClean false retains destroyed entities.', function()
-			local part = Create()
+			local part = create()
 			local group = Group.new({ entities = { part }, autoClean = false })
 
 			part:Destroy()
@@ -77,8 +83,8 @@ return function(Tiniest: Tiniest)
 	Describe('Group.fromTag', function()
 		Test('Populates from instances already tagged.', function()
 			local tag = 'QZGroupFromTagPreExisting'
-			local partA = Create()
-			local partB = Create()
+			local partA = create()
+			local partB = create()
 			CollectionService:AddTag(partA, tag)
 			CollectionService:AddTag(partB, tag)
 
@@ -98,7 +104,7 @@ return function(Tiniest: Tiniest)
 
 		Test('Tracks tag added and removed.', function()
 			local tag = 'QZGroupFromTagAddRemove'
-			local part = Create()
+			local part = create()
 			local group = Group.fromTag(tag)
 
 			Expect(group:contains(part)).never_is_true()
@@ -117,7 +123,7 @@ return function(Tiniest: Tiniest)
 
 		Test('Removes entity when it leaves workspace and re-adds when it returns.', function()
 			local tag = 'QZGroupFromTagAncestry'
-			local part = Create()
+			local part = create()
 			CollectionService:AddTag(part, tag)
 
 			local group = Group.fromTag(tag)
@@ -140,7 +146,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Group:setAutoClean', function()
 		Test('Disabling stops removing entities on destroy.', function()
-			local part = Create()
+			local part = create()
 			local group = Group.new({ entities = { part }, autoClean = true })
 
 			Expect(group:setAutoClean(false)).is(group)
@@ -152,7 +158,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Enabling removes future destroyed entities.', function()
-			local part = Create()
+			local part = create()
 			local group = Group.new({ entities = { part }, autoClean = false })
 
 			Expect(group:setAutoClean(true)).is(group)
@@ -166,7 +172,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Group:add', function()
 		Test('Adds a BasePart.', function()
-			local part = Create()
+			local part = create()
 			local group = Group.new()
 
 			Expect(group:add(part)).is(group)
@@ -178,7 +184,7 @@ return function(Tiniest: Tiniest)
 
 		Test('Adds a Model with a PrimaryPart.', function()
 			local model = Instance.new('Model')
-			local part = Create()
+			local part = create()
 			local group = Group.new()
 
 			part.Parent = model
@@ -216,7 +222,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Adds a Bone.', function()
-			local part = Create()
+			local part = create()
 			local bone = Instance.new('Bone')
 			local group = Group.new()
 
@@ -239,7 +245,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Adding the same entity twice does not duplicate.', function()
-			local part = Create()
+			local part = create()
 			local group = Group.new()
 
 			group:add(part)
@@ -251,7 +257,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Re-adding an entity after removing it works.', function()
-			local part = Create()
+			local part = create()
 			local group = Group.new()
 
 			group:add(part)
@@ -267,7 +273,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Adding an entity to a new group does not remove it from other groups.', function()
-			local part = Create()
+			local part = create()
 			local groupA = Group.new()
 			local groupB = Group.new()
 
@@ -286,7 +292,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Group:addBulk', function()
 		Test('Adds multiple entities in one call.', function()
-			local parts = { Create(), Create(), Create() }
+			local parts = { create(), create(), create() }
 			local group = Group.new()
 
 			Expect(group:addBulk(parts)).is(group)
@@ -303,7 +309,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Group:remove', function()
 		Test('Removes an existing entity.', function()
-			local part = Create()
+			local part = create()
 			local group = Group.new({ entities = { part } })
 
 			Expect(group:remove(part)).is(group)
@@ -314,7 +320,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Removing a non-group entity is ignored.', function()
-			local part = Create()
+			local part = create()
 			local group = Group.new()
 
 			Expect(group:remove(part)).is(group)
@@ -327,7 +333,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Group:removeBulk', function()
 		Test('Removes multiple entities in one call.', function()
-			local parts = { Create(), Create(), Create() }
+			local parts = { create(), create(), create() }
 			local group = Group.new({ entities = parts })
 
 			Expect(group:removeBulk(parts)).is(group)
@@ -344,7 +350,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Group:clear', function()
 		Test('Removes all entities.', function()
-			local parts = { Create(), Create(), Create() }
+			local parts = { create(), create(), create() }
 			local group = Group.new({ entities = parts })
 
 			Expect(group:clear()).is(group)
@@ -375,7 +381,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Group:getEntities', function()
 		Test('Returns every contained entity exactly once.', function()
-			local parts = { Create(), Create(), Create() }
+			local parts = { create(), create(), create() }
 			local group = Group.new({ entities = parts })
 			local entities = group:getEntities()
 			local seen = {}
@@ -395,7 +401,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Returned array is a copy.', function()
-			local parts = { Create(), Create() }
+			local parts = { create(), create() }
 			local group = Group.new({ entities = parts })
 			local snapshot = group:getEntities()
 
@@ -411,7 +417,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Group:iterEntities', function()
 		Test('Iterates every entity exactly once.', function()
-			local parts = { Create(), Create(), Create() }
+			local parts = { create(), create(), create() }
 			local group = Group.new({ entities = parts })
 			local seen = {}
 			local count = 0
@@ -464,7 +470,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Group:destroy', function()
 		Test('Removes group association with contained entities.', function()
-			local part = Create()
+			local part = create()
 			local groupA = Group.new({ entities = { part } })
 			local groupB = Group.new()
 

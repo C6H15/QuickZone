@@ -11,18 +11,24 @@ local Zone = QuickZone.Zone
 
 type Tiniest = typeof(require(TestFolder.Tiniest.tiniest_for_roblox).configure({}))
 
-local ShapeTypes = { 'Block', 'Ball', 'Cylinder', 'Wedge', 'CornerWedge' }
+local SHAPE_TYPES = { 'Block', 'Ball', 'Cylinder', 'Wedge', 'CornerWedge' }
 
-local function Create(Properties: { [string]: any }?, ClassName: string?): BasePart
-	local Part = Instance.new(ClassName or 'Part') :: BasePart
-	if Properties ~= nil then
-		for Property, Value in Properties do
-			(Part :: any)[Property] = Value
+local function create(properties: { [string]: any }?, className: string?): BasePart
+	local part = Instance.new(className or 'Part') :: BasePart
+	if properties ~= nil then
+		for property, value in properties do
+			(part :: any)[property] = value
 		end
 	end
-	Part.Anchored = true
-	Part.Parent = workspace
-	return Part
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.AudioCanCollide = false
+	part.Transparency = 1
+	part.EnableFluidForces = false
+	part.Parent = workspace
+	return part
 end
 
 return function(Tiniest: Tiniest)
@@ -35,7 +41,7 @@ return function(Tiniest: Tiniest)
 		local size = Vector3.one * 20
 
 		Test('Creates a zone for each shape.', function()
-			for _, shape in ShapeTypes do
+			for _, shape in SHAPE_TYPES do
 				local zone = Zone.new({
 					cframe = cframe,
 					size = size,
@@ -84,8 +90,8 @@ return function(Tiniest: Tiniest)
 		local size = Vector3.one * 10
 
 		Test('Creates a zone using an existing part.', function()
-			for _, shape in ShapeTypes do
-				local part = Create({
+			for _, shape in SHAPE_TYPES do
+				local part = create({
 					CFrame = cframe,
 					Size = size,
 					Shape = (Enum.PartType :: any)[shape],
@@ -104,7 +110,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Creates a zone using a WedgePart.', function()
-			local part = Create(nil, 'WedgePart')
+			local part = create(nil, 'WedgePart')
 			local zone = Zone.fromPart(part)
 
 			Expect(zone:getShape()).is('Wedge')
@@ -113,7 +119,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Creates a zone using a CornerWedgePart.', function()
-			local part = Create(nil, 'CornerWedgePart')
+			local part = create(nil, 'CornerWedgePart')
 			local zone = Zone.fromPart(part)
 
 			Expect(zone:getShape()).is('CornerWedge')
@@ -228,7 +234,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Zone:setReference', function()
 		Test("Sets and clears the zone's reference.", function()
-			local part = Create()
+			local part = create()
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 
 			Expect(zone:getReference()).is()
@@ -242,8 +248,8 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Attach auto-sync to the new reference.', function()
-			local partA = Create({ Size = Vector3.one * 10 })
-			local partB = Create({ Size = Vector3.one * 10 })
+			local partA = create({ Size = Vector3.one * 10 })
+			local partB = create({ Size = Vector3.one * 10 })
 			local zone = Zone.fromPart(partA, { autoSync = true })
 
 			Expect(zone:setReference(partB)).is(zone)
@@ -262,7 +268,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Zone:setAutoSync', function()
 		Test('Automatically changes a static zone to dynamic.', function()
-			local part = Create()
+			local part = create()
 			local zone = Zone.fromPart(part)
 
 			Expect(zone:isDynamic()).never_is_true()
@@ -275,7 +281,7 @@ return function(Tiniest: Tiniest)
 
 		Test('Syncs CFrame via scheduler update.', function()
 			local cframe = CFrame.new(50, 0, 0)
-			local part = Create()
+			local part = create()
 			local zone = Zone.fromPart(part, { autoSync = true })
 
 			part.CFrame = cframe
@@ -287,7 +293,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Disabling stops future syncing.', function()
-			local part = Create()
+			local part = create()
 			local zone = Zone.fromPart(part, { autoSync = true })
 
 			part.CFrame = CFrame.new(10, 0, 0)
@@ -306,7 +312,7 @@ return function(Tiniest: Tiniest)
 
 		Test('Auto-syncs size.', function()
 			local size = Vector3.one * 20
-			local part = Create({ Size = Vector3.one * 10 })
+			local part = create({ Size = Vector3.one * 10 })
 			local zone = Zone.fromPart(part, { autoSync = true })
 
 			part.Size = size
@@ -318,7 +324,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Auto-syncs shape.', function()
-			local part = Create({ Shape = Enum.PartType.Block }) :: Part
+			local part = create({ Shape = Enum.PartType.Block }) :: Part
 			local zone = Zone.fromPart(part, { autoSync = true })
 
 			part.Shape = Enum.PartType.Ball
@@ -334,7 +340,7 @@ return function(Tiniest: Tiniest)
 		Test('Gets CFrame, size, and shape from reference.', function()
 			local cframe = CFrame.new(50, 0, 0)
 			local size = Vector3.one * 20
-			local part = Create({ Size = Vector3.one * 10 }) :: Part
+			local part = create({ Size = Vector3.one * 10 }) :: Part
 			local zone = Zone.fromPart(part)
 
 			part.CFrame = cframe
@@ -495,7 +501,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Zone.fromParts', function()
 		Test('Creates a Zones container with one inner zone per part.', function()
-			local parts = { Create(), Create(), Create() }
+			local parts = { create(), create(), create() }
 			local seen = {}
 			local zones = Zone.fromParts(parts)
 
@@ -519,8 +525,8 @@ return function(Tiniest: Tiniest)
 		Test('Gets direct children only.', function()
 			local parentFolder = Instance.new('Folder')
 			local childFolder = Instance.new('Folder')
-			Create().Parent = parentFolder
-			Create().Parent = childFolder
+			create().Parent = parentFolder
+			create().Parent = childFolder
 			childFolder.Parent = parentFolder
 			parentFolder.Parent = workspace
 
@@ -533,8 +539,8 @@ return function(Tiniest: Tiniest)
 
 		Test('Tracks children added and removed.', function()
 			local parentFolder = Instance.new('Folder')
-			local partA = Create()
-			local partB = Create()
+			local partA = create()
+			local partB = create()
 			partA.Parent = parentFolder
 			parentFolder.Parent = workspace
 
@@ -560,8 +566,8 @@ return function(Tiniest: Tiniest)
 		Test('Gets nested descendants, not just direct children.', function()
 			local parentFolder = Instance.new('Folder')
 			local childFolder = Instance.new('Folder')
-			Create().Parent = parentFolder
-			Create().Parent = childFolder
+			create().Parent = parentFolder
+			create().Parent = childFolder
 			childFolder.Parent = parentFolder
 			parentFolder.Parent = workspace
 
@@ -575,8 +581,8 @@ return function(Tiniest: Tiniest)
 		Test('Tracks descendants added and removed.', function()
 			local parentFolder = Instance.new('Folder')
 			local childFolder = Instance.new('Folder')
-			local partA = Create()
-			local partB = Create()
+			local partA = create()
+			local partB = create()
 			partA.Parent = childFolder
 			childFolder.Parent = parentFolder
 			parentFolder.Parent = workspace
@@ -602,8 +608,8 @@ return function(Tiniest: Tiniest)
 	Describe('Zone.fromTag', function()
 		Test('Populates from instances already tagged.', function()
 			local tag = 'QZFromTagPreExisting'
-			local partA = Create()
-			local partB = Create()
+			local partA = create()
+			local partB = create()
 			CollectionService:AddTag(partA, tag)
 			CollectionService:AddTag(partB, tag)
 
@@ -620,8 +626,8 @@ return function(Tiniest: Tiniest)
 
 		Test('Tracks tag added and removed.', function()
 			local tag = 'QZFromTagExisting'
-			local partA = Create()
-			local partB = Create()
+			local partA = create()
+			local partB = create()
 			CollectionService:AddTag(partA, tag)
 
 			local zones = Zone.fromTag(tag)
@@ -648,8 +654,8 @@ return function(Tiniest: Tiniest)
 			local tag = 'QZContainerTag'
 			local model = Instance.new('Model')
 			local folder = Instance.new('Folder')
-			local partA = Create()
-			local partB = Create()
+			local partA = create()
+			local partB = create()
 			partA.Parent = model
 			partB.Parent = folder
 			model.Parent = workspace
@@ -661,7 +667,7 @@ return function(Tiniest: Tiniest)
 			task.wait()
 			Expect(#zones:getZones()).is(2)
 
-			local partC = Create()
+			local partC = create()
 			partC.Parent = folder
 			task.wait()
 			Expect(#zones:getZones()).is(3)
@@ -677,7 +683,7 @@ return function(Tiniest: Tiniest)
 		Test('Collision Fix: Zone survives if child and parent are both tagged and one tag is removed.', function()
 			local tag = 'QZCollisionTag'
 			local model = Instance.new('Model')
-			local part = Create()
+			local part = create()
 			part.Parent = model
 			model.Parent = workspace
 
@@ -712,7 +718,7 @@ return function(Tiniest: Tiniest)
 		Test('Cleans up container connections when container leaves workspace.', function()
 			local tag = 'QZAncestryCleanup'
 			local model = Instance.new('Model')
-			local part = Create()
+			local part = create()
 			part.Parent = model
 			model.Parent = workspace
 			CollectionService:AddTag(model, tag)
@@ -740,7 +746,7 @@ return function(Tiniest: Tiniest)
 	-- Zones are covered below.
 	Describe('Zones', function()
 		Test('Returns true for inner zones and false for outer zones.', function()
-			local parts = { Create(), Create() }
+			local parts = { create(), create() }
 			local zones = Zone.fromParts(parts)
 			local outer = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 5 })
 
@@ -758,7 +764,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Iteration methods yield every entry once.', function()
-			local parts = { Create(), Create(), Create() }
+			local parts = { create(), create(), create() }
 			local seenZones, seenReferences = {}, {}
 			local zoneCount = 0
 			local zones = Zone.fromParts(parts)
@@ -788,7 +794,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Zones set to dynamic.', function()
-			local parts = { Create(), Create() }
+			local parts = { create(), create() }
 			local zones = Zone.fromParts(parts)
 
 			Expect(zones:isDynamic()).never_is_true()
@@ -807,7 +813,7 @@ return function(Tiniest: Tiniest)
 
 		Test('Zones set with metadata.', function()
 			local metadata = { Value = 5 }
-			local parts = { Create(), Create() }
+			local parts = { create(), create() }
 			local zones = Zone.fromParts(parts)
 
 			zones:setMetadata(metadata)
@@ -824,8 +830,8 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Zones set to auto-sync.', function()
-			local partA = Create()
-			local partB = Create({ CFrame = CFrame.new(100, 0, 0) })
+			local partA = create()
+			local partB = create({ CFrame = CFrame.new(100, 0, 0) })
 			local matches = 0
 			local zones = Zone.fromParts({ partA, partB })
 
@@ -859,8 +865,8 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Sync updates every inner zone from its reference.', function()
-			local partA = Create()
-			local partB = Create({ CFrame = CFrame.new(100, 0, 0) })
+			local partA = create()
+			local partB = create({ CFrame = CFrame.new(100, 0, 0) })
 			local matches = 0
 			local zones = Zone.fromParts({ partA, partB }, { isDynamic = true })
 
@@ -888,8 +894,8 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Returns true inside any inner zone, false outside.', function()
-			local partA = Create({ Size = Vector3.one * 10 })
-			local partB = Create({ CFrame = CFrame.new(100, 0, 0), Size = Vector3.one * 10 })
+			local partA = create({ Size = Vector3.one * 10 })
+			local partB = create({ CFrame = CFrame.new(100, 0, 0), Size = Vector3.one * 10 })
 			local zones = Zone.fromParts({ partA, partB })
 
 			Expect(zones:isPointInside(Vector3.zero)).is_true()
@@ -902,7 +908,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test("Zones fire connected callbacks and disconnected doesn't fire.", function()
-			local parts = { Create(), Create() }
+			local parts = { create(), create() }
 			local firedA, firedB = 0, 0
 			local zones = Zone.fromParts(parts)
 

@@ -12,16 +12,22 @@ local Observer = QuickZone.Observer
 
 type Tiniest = typeof(require(TestFolder.Tiniest.tiniest_for_roblox).configure({}))
 
-local function Create(Properties: { [string]: any }?, ClassName: string?): BasePart
-	local Part = Instance.new(ClassName or 'Part') :: BasePart
-	if Properties ~= nil then
-		for Property, Value in Properties do
-			(Part :: any)[Property] = Value
+local function create(properties: { [string]: any }?, className: string?): BasePart
+	local part = Instance.new(className or 'Part') :: BasePart
+	if properties ~= nil then
+		for property, value in properties do
+			(part :: any)[property] = value
 		end
 	end
-	Part.Anchored = true
-	Part.Parent = workspace
-	return Part
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.AudioCanCollide = false
+	part.Transparency = 1
+	part.EnableFluidForces = false
+	part.Parent = workspace
+	return part
 end
 
 return function(Tiniest: Tiniest)
@@ -31,7 +37,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Observer.new', function()
 		Test('Creates an observer with provided config.', function()
-			local part = Create()
+			local part = create()
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { part } })
 			local observer = Observer.new({
@@ -103,7 +109,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Fires exit for entities tracked via the unsubscribed group.', function()
-			local part = Create()
+			local part = create()
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { part } })
 			local exits = 0
@@ -139,7 +145,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Attaching a Zones attaches every inner zone.', function()
-			local parts = { Create(), Create() }
+			local parts = { create(), create() }
 			local zones = Zone.fromParts(parts)
 			local observer = Observer.new({ zones = {}, groups = {} })
 
@@ -169,7 +175,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Observer:onEnter', function()
 		Test('Fires when an entity enters an attached zone.', function()
-			local part = Create()
+			local part = create()
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { part } })
 			local enters = 0
@@ -194,7 +200,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Disconnect stops it from firing.', function()
-			local part = Create({ CFrame = CFrame.new(100, 0, 0) })
+			local part = create({ CFrame = CFrame.new(100, 0, 0) })
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { part } })
 			local enters = 0
@@ -218,7 +224,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Observer:onExit', function()
 		Test('Fires when entity exits all attached zones.', function()
-			local part = Create()
+			local part = create()
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { part } })
 			local exits = 0
@@ -242,7 +248,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Disconnect stops it from firing.', function()
-			local part = Create()
+			local part = create()
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { part } })
 			local exits = 0
@@ -267,7 +273,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Observer:observe', function()
 		Test('Clean-up runs on exit.', function()
-			local part = Create()
+			local part = create()
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { part } })
 			local entered, cleaned = 0, 0
@@ -295,7 +301,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Disconnect runs cleanups for active entities.', function()
-			local part = Create()
+			local part = create()
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { part } })
 			local cleaned = 0
@@ -325,7 +331,7 @@ return function(Tiniest: Tiniest)
 		Test('Fires when entity transitions between overlapping zones.', function()
 			local zoneA = Zone.new({ cframe = CFrame.new(-3, 0, 0), size = Vector3.one * 10 })
 			local zoneB = Zone.new({ cframe = CFrame.new(3, 0, 0), size = Vector3.one * 10 })
-			local part = Create({ CFrame = CFrame.new(-6, 0, 0) })
+			local part = create({ CFrame = CFrame.new(-6, 0, 0) })
 			local group = Group.new({ entities = { part } })
 			local transitions = 0
 			local observer = Observer.new({ zones = { zoneA, zoneB }, groups = { group }, safety = false })
@@ -352,7 +358,7 @@ return function(Tiniest: Tiniest)
 		Test('Disconnect stops it from firing.', function()
 			local zoneA = Zone.new({ cframe = CFrame.new(-3, 0, 0), size = Vector3.one * 10 })
 			local zoneB = Zone.new({ cframe = CFrame.new(3, 0, 0), size = Vector3.one * 10 })
-			local part = Create({ CFrame = CFrame.new(-6, 0, 0) })
+			local part = create({ CFrame = CFrame.new(-6, 0, 0) })
 			local group = Group.new({ entities = { part } })
 			local transitions = 0
 			local observer = Observer.new({ zones = { zoneA, zoneB }, groups = { group }, safety = false })
@@ -381,8 +387,8 @@ return function(Tiniest: Tiniest)
 
 	Describe('Observer:onGroupEnter', function()
 		Test('Fires once per group entry cycle.', function()
-			local partA = Create({ CFrame = CFrame.new(-3, 0, 0) })
-			local partB = Create({ CFrame = CFrame.new(100, 0, 0) })
+			local partA = create({ CFrame = CFrame.new(-3, 0, 0) })
+			local partB = create({ CFrame = CFrame.new(100, 0, 0) })
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { partA, partB } })
 			local fires = 0
@@ -415,7 +421,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Fires once per subscribed group when an entity in multiple groups enters.', function()
-			local part = Create()
+			local part = create()
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local groupA = Group.new({ entities = { part } })
 			local groupB = Group.new({ entities = { part } })
@@ -441,8 +447,8 @@ return function(Tiniest: Tiniest)
 
 	Describe('Observer:onGroupExit', function()
 		Test('Fires once when last entity exits.', function()
-			local partA = Create({ CFrame = CFrame.new(-3, 0, 0) })
-			local partB = Create({ CFrame = CFrame.new(3, 0, 0) })
+			local partA = create({ CFrame = CFrame.new(-3, 0, 0) })
+			local partB = create({ CFrame = CFrame.new(3, 0, 0) })
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { partA, partB } })
 			local fires = 0
@@ -471,7 +477,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Fires per subscribed group when an entity in multiple groups exits.', function()
-			local part = Create()
+			local part = create()
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local groupA = Group.new({ entities = { part } })
 			local groupB = Group.new({ entities = { part } })
@@ -501,8 +507,8 @@ return function(Tiniest: Tiniest)
 
 	Describe('Observer:observeGroup', function()
 		Test('Clean-up runs only when last entity of group exits.', function()
-			local partA = Create({ CFrame = CFrame.new(-3, 0, 0) })
-			local partB = Create({ CFrame = CFrame.new(3, 0, 0) })
+			local partA = create({ CFrame = CFrame.new(-3, 0, 0) })
+			local partB = create({ CFrame = CFrame.new(3, 0, 0) })
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { partA, partB } })
 			local entered, cleaned = 0, 0
@@ -536,7 +542,7 @@ return function(Tiniest: Tiniest)
 		Test(
 			'Enter and clean-up run per subscribed group when an entity in multiple groups enters and exits.',
 			function()
-				local part = Create()
+				local part = create()
 				local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 				local groupA = Group.new({ entities = { part } })
 				local groupB = Group.new({ entities = { part } })
@@ -587,7 +593,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Disabling fires exit for tracked entities.', function()
-			local part = Create()
+			local part = create()
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { part } })
 			local exits = 0
@@ -636,7 +642,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Higher priority observer outweighs lower in overlap.', function()
-			local part = Create()
+			local part = create()
 			local zoneA = Zone.new({ cframe = CFrame.new(-2, 0, 0), size = Vector3.one * 10 })
 			local zoneB = Zone.new({ cframe = CFrame.new(2, 0, 0), size = Vector3.one * 10 })
 			local group = Group.new({ entities = { part } })
@@ -737,8 +743,8 @@ return function(Tiniest: Tiniest)
 
 	Describe('Observer:getEntitiesInside', function()
 		Test('Returns entities currently tracked inside attached zones.', function()
-			local partA = Create({ CFrame = CFrame.new(-3, 0, 0) })
-			local partB = Create({ CFrame = CFrame.new(3, 0, 0) })
+			local partA = create({ CFrame = CFrame.new(-3, 0, 0) })
+			local partB = create({ CFrame = CFrame.new(3, 0, 0) })
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { partA, partB } })
 			local observer = Observer.new({ zones = { zone }, groups = { group }, safety = false })
@@ -803,8 +809,8 @@ return function(Tiniest: Tiniest)
 
 	Describe('Observer:iterEntitiesInside', function()
 		Test('Iterates each tracked entity once.', function()
-			local partA = Create({ CFrame = CFrame.new(-3, 0, 0) })
-			local partB = Create({ CFrame = CFrame.new(3, 0, 0) })
+			local partA = create({ CFrame = CFrame.new(-3, 0, 0) })
+			local partB = create({ CFrame = CFrame.new(3, 0, 0) })
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { partA, partB } })
 			local seen = {}
@@ -916,7 +922,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Observer:getZoneOfEntity', function()
 		Test('Returns the zone an entity is currently tracked in.', function()
-			local part = Create({ CFrame = CFrame.new(20, 0, 0) })
+			local part = create({ CFrame = CFrame.new(20, 0, 0) })
 			local zoneA = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local zoneB = Zone.new({ cframe = CFrame.new(20, 0, 0), size = Vector3.one * 10 })
 			local group = Group.new({ entities = { part } })
@@ -933,7 +939,7 @@ return function(Tiniest: Tiniest)
 		end)
 
 		Test('Returns nil for an entity not currently inside any zone.', function()
-			local part = Create({ CFrame = CFrame.new(100, 0, 0) })
+			local part = create({ CFrame = CFrame.new(100, 0, 0) })
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { part } })
 			local observer = Observer.new({ zones = { zone }, groups = { group }, safety = false })
@@ -950,8 +956,8 @@ return function(Tiniest: Tiniest)
 
 	Describe('Observer:getEntitiesInZone', function()
 		Test('Returns entities only in the given zone.', function()
-			local partA = Create({ CFrame = CFrame.new(0, 0, 0) })
-			local partB = Create({ CFrame = CFrame.new(20, 0, 0) })
+			local partA = create({ CFrame = CFrame.new(0, 0, 0) })
+			local partB = create({ CFrame = CFrame.new(20, 0, 0) })
 			local zoneA = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local zoneB = Zone.new({ cframe = CFrame.new(20, 0, 0), size = Vector3.one * 10 })
 			local group = Group.new({ entities = { partA, partB } })
@@ -978,8 +984,8 @@ return function(Tiniest: Tiniest)
 
 	Describe('Observer:iterEntitiesInZone', function()
 		Test('Iterates entities in the given zone once.', function()
-			local partA = Create({ CFrame = CFrame.new(0, 0, 0) })
-			local partB = Create({ CFrame = CFrame.new(20, 0, 0) })
+			local partA = create({ CFrame = CFrame.new(0, 0, 0) })
+			local partB = create({ CFrame = CFrame.new(20, 0, 0) })
 			local zoneA = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local zoneB = Zone.new({ cframe = CFrame.new(20, 0, 0), size = Vector3.one * 10 })
 			local group = Group.new({ entities = { partA, partB } })
@@ -1031,7 +1037,7 @@ return function(Tiniest: Tiniest)
 
 	Describe('Observer:destroy', function()
 		Test('Fires exit for tracked entities.', function()
-			local part = Create()
+			local part = create()
 			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
 			local group = Group.new({ entities = { part } })
 			local exits = 0

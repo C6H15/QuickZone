@@ -1,5 +1,5 @@
 --!strict
-local ServerScriptService = game:GetService("ServerScriptService")
+local ServerScriptService = game:GetService('ServerScriptService')
 
 local TestFolder = ServerScriptService.Test
 local TiniestFolder = TestFolder.Tiniest
@@ -7,12 +7,12 @@ local SpecificationsFolder = TestFolder.Specifications
 
 local Tiniest = require(TiniestFolder.tiniest_for_roblox).configure({})
 
-local Tests = Tiniest.collect_tests_from_hierarchy(SpecificationsFolder)
-local Results = Tiniest.run_tests(Tests, {})
+local tests = Tiniest.collect_tests_from_hierarchy(SpecificationsFolder)
+local results = Tiniest.run_tests(tests, {})
 
-local PassCount = Results.status_tally.pass
-local FailCount = Results.status_tally.fail
+local passCount = results.status_tally.pass
+local failCount = results.status_tally.fail
 
-if FailCount > 0 then
-	warn(`[QuickZone Tests]: {FailCount}/{PassCount + FailCount} test(s) failed!`)
+if failCount > 0 then
+	warn(`[QuickZone Tests]: {failCount}/{passCount + failCount} test(s) failed!`)
 end
