@@ -34,7 +34,7 @@ Standard `onEnter` and `onExit` signals. This is best for one-off actions.
 
 ```lua
 observer:onPlayerEnter(function(player, zone)
-    print(player.Name .. " entered " .. zone:getId())
+    print(player.Name .. ' entered ' .. zone:getId())
 end)
 ```
 
@@ -166,7 +166,7 @@ local projectiles = Group.new({
 ```
 
 ### Managing Entities
-You can add BaseParts, Models, Attachments, Bones, or tables with a Position.
+You can add Players, BaseParts, Models, Attachments, Bones, or  custom tables with a Position.
 
 ```lua
 -- Add a Model (tracks the PrimaryPart or Pivot)
@@ -291,7 +291,7 @@ Observers use a priority system to handle overlapping zones. An entity 'belongs'
 #### Pattern 1: The Data-Driven Pattern (Single Observer + Transitions)
 **Best for**: Systems that share the exact same logic, but use different values (e.g., all Environmental Hazards, all Healing Zones, all XP Zones).
 
-If a player walks from a Lava zone into an overlapping SuperLava zone attached to the same observer, they never actually "left" the observer's overall coverage area. Therefore, onExit and onEnter will not fire. Instead, the engine fires an onTransition event.
+If a player walks from a Lava zone into an overlapping SuperLava zone attached to the same observer, they never actually left the observer's overall coverage area. Therefore, `onExit` and `onEnter` will not fire. Instead, QuickZone fires an `onTransition` event.
 
 This allows you to update metadata instantly!
 
@@ -300,11 +300,11 @@ hazardObserver:observePlayer(function(player, initialZone)
     local currentDamage = initialZone:getMetadata().Damage or 10
     local active = true
 
-    local disconnectTransition = hazardObserver:onPlayerTransition(function(transitioningPlayer, newZone)
+    local cleanup = hazardObserver:onPlayerTransition(function(transitioningPlayer, newZone)
         if transitioningPlayer ~= player then return end
         
         currentDamage = newZone:getMetadata().Damage or 10
-        print(player.Name .. " transitioned. New damage: " .. currentDamage)
+        print(player.Name .. ' transitioned. New damage: ' .. currentDamage)
     end)
 
     task.spawn(function()
@@ -316,7 +316,7 @@ hazardObserver:observePlayer(function(player, initialZone)
 
     return function()
         active = false
-        disconnectTransition() -- Clean up the listener
+        cleanup()
     end
 end)
 ```

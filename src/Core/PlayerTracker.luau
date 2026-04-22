@@ -1,3 +1,5 @@
+--!strict
+
 local Players = game:GetService('Players')
 
 local Types = require(script.Parent.Parent.Types)

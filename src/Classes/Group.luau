@@ -45,6 +45,7 @@ Group.__index = Group
 	```
 
 	@tag Constructor
+	@tag Chainable
 	@param config { entities: { T }?, autoClean: boolean? }?
 	@return Group
 ]=]
@@ -83,6 +84,7 @@ end
 	Instances are only tracked while they are descendants of the Workspace.
 
 	@tag Constructor
+	@tag Chainable
 	@param tag string
 	@return Group
 ]=]
@@ -160,6 +162,7 @@ end
 	:::
 
 	@tag Constructor
+	@tag Chainable
 	@return Group
 ]=]
 function Group.players(): Types.Group<Player>
@@ -191,6 +194,7 @@ end
 
 	@client
 	@tag Constructor
+	@tag Chainable
 	@return Group
 ]=]
 function Group.localPlayer(): Types.Group<Player>
@@ -211,6 +215,7 @@ end
 	When enabled, if an Instance is Destroyed() or parented to nil, it will be 
 	automatically removed from this group.
 
+	@tag Chainable
 	@method setAutoClean
 	@within Group
 	@param enabled boolean
@@ -274,6 +279,7 @@ end
 	* **Table:** Looks for `.Position`, `.CFrame`, `.WorldPosition`, or `:GetPivot()`.
 	:::
 
+	@tag Chainable
 	@method add
 	@within Group
 	@param entity any -- The object to track.
@@ -295,6 +301,7 @@ end
 	myGroup:addBulk(workspace.Enemies:GetChildren())
 	```
 
+	@tag Chainable
 	@method addBulk
 	@within Group
 	@param entities { any } -- Array of entities to add.
@@ -311,6 +318,7 @@ end
 --[=[ 
 	Removes the entity from the group.
 
+	@tag Chainable
 	@method remove
 	@within Group
 	@param entity any
@@ -327,6 +335,7 @@ end
 --[=[ 
 	Removes multiple entities from the group.
 	
+	@tag Chainable
 	@method removeBulk
 	@within Group
 	@param entities { any }
@@ -344,6 +353,7 @@ end
 	Removes all entities from the group.
 	This fires 'onExit' events for every entity currently inside a zone.
 
+	@tag Chainable
 	@method clear
 	@within Group
 	@return Group
@@ -541,9 +551,9 @@ function Group._add(self: Types.InternalGroup, reference: any): Types.Group
 			precisionSq = DEFAULT_PRECISION_SQ,
 			updateRate = -1,
 			bucketIndex = 0,
-			dynamicVersion = 0,
-			staticVersion = 0,
-			logicVersion = 0,
+			dynamicVersion = -1,
+			staticVersion = -1,
+			logicVersion = -1,
 			needsStatic = false,
 			needsDynamic = false,
 		}
@@ -555,6 +565,7 @@ function Group._add(self: Types.InternalGroup, reference: any): Types.Group
 
 	State.dirtyProfiles[entity] = true
 	State.dirtyTopology[entity] = true
+	State.entityData[entity].logicVersion = -1
 
 	if self.autoClean and typeof(entity) == 'Instance' and not State.groupEntityCleanups[self.id][entity] then
 		State.groupEntityCleanups[self.id][entity] = (entity :: Instance).AncestryChanged:Connect(function(_, parent)

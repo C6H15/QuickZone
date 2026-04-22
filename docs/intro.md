@@ -89,7 +89,7 @@ This test highlights the fundamental flaw in traditional Zone-Centric libraries.
 Add the following to your wally.toml file:
 
 ```toml
-ldgerrits/quickzone@^1.4.1
+ldgerrits/quickzone@1.4.2
 ```
 
 ### NPM
@@ -168,7 +168,7 @@ gravityObserver:onLocalPlayerEnter(function(zone)
     if not hrp then return end
 
     local ref = zone:getReference() -- This returns the zone's part
-    local multiplier = ref and ref:GetAttribute("GravityMultiplier") or 1 -- You can use attributes!
+    local multiplier = ref and ref:GetAttribute('GravityMultiplier') or 1 -- You can use attributes!
 
     local force = Instance.new('BodyForce')
     force.Name = 'AntiGravityForce'
@@ -191,7 +191,7 @@ Use iterators to poll state for continuous logic. To enhance ECS workflows, you 
 
 ```lua
 local Players = game:GetService('Players')
-local RunService = game:GetService("RunService")
+local RunService = game:GetService('RunService')
 local QuickZone = require(game.ReplicatedStorage.QuickZone)
 local Zone, Group, Observer = QuickZone.Zone, QuickZone.Group, QuickZone.Observer
 

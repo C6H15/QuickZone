@@ -101,6 +101,8 @@ QuickZone will only perform a spatial query for an entity against the Dynamic LB
 ### 7. Flexibility
 Because QuickZone relies on pure math rather than the Physics engine, it is not limited to BaseParts. It also supports duck typing for entities.
 
+- **Players**: Uses `.Position` of the player character's HumanoidRootPart. QuickZone automatically handles the messy lifecycle of characters spawning, dying, and streaming in or out for you.
+
 - **BaseParts**: Uses `.Position`.
 
 - **Models**: Uses `.PrimaryPart.Position` or `:GetPivot()` (if `.PrimaryPart` does not exist).
@@ -109,9 +111,7 @@ Because QuickZone relies on pure math rather than the Physics engine, it is not 
 
 - **Cameras**: Uses `.CFrame.Position`.
 
-- **Tables**: Uses any custom `.Position`, `.WorldPosition` and `.CFrame` field, or `:GetPivot()`.
-
-This allows you to track real-time simulations (e.g. a spell cast or an RC car) without the overhead of creating physical Instances.
+- **Custom Tables**: Uses any custom `.Position`, `.WorldPosition` and `.CFrame` field, or a `:GetPivot()` method. This allows you to track real-time simulations (e.g. a spell cast or an RC car) without the overhead of creating physical Instances.
 
 ---
 

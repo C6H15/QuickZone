@@ -141,6 +141,7 @@ Observer.__index = Observer
 	:::
 
 	@tag Constructor
+	@tag Chainable
 	@param config { groups: { Types.Group }?, zones: { Types.Zone | Types.Zones }?, priority: number?, updateRate: number?, precision: number?, enabled: boolean?, safety: boolean? }?
 	@return Observer
 ]=]
@@ -226,6 +227,7 @@ end
 	observer:subscribe(playerGroup):subscribe(enemyGroup)
 	```
 
+	@tag Chainable
 	@method subscribe
 	@within Observer
 	@param group Group -- The group to monitor.
@@ -251,6 +253,7 @@ end
 --[=[ 
 	Stops the observer from monitoring the specified group.
 
+	@tag Chainable
 	@method unsubscribe
 	@within Observer
 	@param group Group -- The group to stop monitoring.
@@ -279,6 +282,7 @@ end
 		:attach(zone3)
 	```
 
+	@tag Chainable
 	@method attach
 	@within Observer
 	@param zone Zone -- The zone to link.
@@ -294,6 +298,7 @@ end
 	Detaches the Observer from the zone. The observer will begin 
 	monitoring this area for entity overlaps.
 
+	@tag Chainable
 	@method detach
 	@within Observer
 	@param zone Zone -- The zone to unlink.
@@ -966,6 +971,7 @@ end
 	Enables or disables the observer. When disabled, it will no longer process
 	spatial checks or fire events.
 
+	@tag Chainable
 	@method setEnabled
 	@within Observer
 	@param enabled boolean
@@ -1009,6 +1015,7 @@ end
 	If set to unsafe, you are not allowed to yield in the callbacks anymore. If you do, QuickZone will throw errors.
 	:::
 
+	@tag Chainable
 	@method setSafety
 	@within Observer
 	@param enabled boolean
@@ -1022,6 +1029,7 @@ end
 --[=[ 
 	Updates the resolution priority of the observer.
 
+	@tag Chainable
 	@method setPriority
 	@within Observer
 	@param p number
@@ -1036,6 +1044,7 @@ end
 --[=[ 
 	Updates the update frequency for this observer.
 
+	@tag Chainable
 	@method setUpdateRate
 	@within Observer
 	@param hz number
@@ -1054,6 +1063,7 @@ end
 --[=[ 
 	Updates the precision in studs for this observer.
 
+	@tag Chainable
 	@method setPrecision
 	@within Observer
 	@param n number

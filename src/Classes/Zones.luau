@@ -34,6 +34,7 @@ end
 --[=[ 
 	Attaches an Observer to all underlying zones.
 
+	@tag Chainable
 	@method attach
 	@within Zones
 	@param observer Observer
@@ -59,6 +60,7 @@ end
 --[=[ 
 	Detaches an Observer from all underlying zones.
 
+	@tag Chainable
 	@method detach
 	@within Zones
 	@param observer Observer
@@ -86,6 +88,7 @@ end
 --[=[ 
 	Forces all dynamic underlying zones to recalculate their spatial geometry.
 
+	@tag Chainable
 	@method sync
 	@within Zones
 	@return Zones
@@ -147,6 +150,7 @@ end
 	Enables or disables automatic polling and syncing to the tracked BaseParts for all underlying zones.
 	If any zones are currently static, they will automatically be set to dynamic.
 
+	@tag Chainable
 	@method setAutoSync
 	@within Zones
 	@param autoSync boolean
@@ -173,6 +177,7 @@ end
 	Changing a zone's dynamic state forces both the static and dynamic trees to rebuild. 
 	:::
 
+	@tag Chainable
 	@method setDynamic
 	@within Zones
 	@param isDynamic boolean
@@ -195,6 +200,7 @@ end
 --[=[
 	Sets metadata to all underlying zones.
 
+	@tag Chainable
 	@method setMetadata
 	@within Zones
 	@param metadata any

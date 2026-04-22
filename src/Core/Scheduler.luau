@@ -387,15 +387,19 @@ function Scheduler.update(dt: number)
 			local needsStatic = data.needsStatic
 			local needsDynamic = data.needsDynamic
 
-			local shouldCheck = (data.logicVersion ~= logicVersion)
-				or (needsDynamic and data.dynamicVersion ~= dynamicVersion)
-				or (needsStatic and data.staticVersion ~= staticVersion)
-
-			if not shouldCheck then
+			local shouldCheck = false
+			if data.logicVersion ~= logicVersion then
+				shouldCheck = true
+			elseif data.needsDynamic and data.dynamicVersion ~= dynamicVersion then
+				shouldCheck = true
+			elseif data.needsStatic and data.staticVersion ~= staticVersion then
+				shouldCheck = true
+			else
 				local lastPosition = data.lastPosition
 				local dx = position.X - lastPosition.X
 				local dy = position.Y - lastPosition.Y
 				local dz = position.Z - lastPosition.Z
+
 				if (dx * dx + dy * dy + dz * dz) >= data.precisionSq then
 					shouldCheck = true
 				end

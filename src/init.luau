@@ -1,5 +1,5 @@
 --!strict
---v1.4.1 • LDGerrits
+--v1.4.2 • LDGerrits
 --[=[
 	@class QuickZone
 
@@ -64,6 +64,7 @@ local QuickZone = {
 	})
 	```
 
+	@tag Chainable
 	@method configure
 	@within QuickZone
 	@param config { enabled: boolean?, autoSyncRate: number?, frameBudget: number? }
@@ -88,6 +89,7 @@ end
 --[=[ 
 	Enables or disables automatic updating. If false, you must call `QuickZone:update(dt)` manually.
 
+	@tag Chainable
 	@method setEnabled
 	@within QuickZone
 	@param enabled boolean
@@ -102,6 +104,7 @@ end
 	Manually processes the spatial queries and trigger callbacks.
 	This is only necessary if you disabled automatic updating.
 
+	@tag Chainable
 	@method update
 	@within QuickZone
 	@param dt number -- Delta time
@@ -116,6 +119,7 @@ end
 	Sets the automatic sync rate for zones with references. 
 	This controls how often QuickZone checks the reference's position and updates the zone accordingly.
 
+	@tag Chainable
 	@method setAutoSyncRate
 	@within QuickZone
 	@param hz number -- Sync frequency in Hz. Set to 0 to disable auto-syncing.
@@ -133,6 +137,7 @@ end
 	and want to ensure the changes take effect immediately. 
 	Otherwise, the Scheduler will automatically rebuild the trees on the next update step.
 
+	@tag Chainable
 	@method rebuild
 	@within QuickZone
 	@return QuickZone
@@ -156,6 +161,7 @@ end
 	end)
 	```
 
+	@tag Chainable
 	@method setReference
 	@within QuickZone
 	@param entity Entity
@@ -191,6 +197,7 @@ end
 	QuickZone:setFrameBudget(0.5)
 	```
 
+	@tag Chainable
 	@method setFrameBudget
 	@within QuickZone
 	@param ms number -- Time in milliseconds
@@ -207,6 +214,7 @@ end
 	It will be removed from all Groups, resolving any active Observers 
 	and firing their `onExit` events.
 
+	@tag Chainable
 	@method removeEntity
 	@within QuickZone
 	@param entity any
@@ -658,7 +666,7 @@ end
 	Enables or disables visual rendering of all registered Zones.
 	Static and Dynamic zones are colored differently based on their active status.
 
-	@tag Debug
+	@tag Chainable
 	@method visualize
 	@within QuickZone
 	@param enabled boolean -- Whether to show the debug visuals.

@@ -19,9 +19,9 @@ local State = {
 	dynamicTree = { nodes = {}, count = 0 } :: Types.Tree,
 	pendingStaticRebuild = false,
 	pendingDynamicRebuild = false,
-	staticVersion = 1,
-	dynamicVersion = 1,
-	logicVersion = 1,
+	staticVersion = 0,
+	dynamicVersion = 0,
+	logicVersion = 0,
 
 	groups = {} :: { [number]: Types.InternalGroup },
 	groupToObservers = {} :: { [number]: { [number]: boolean } },

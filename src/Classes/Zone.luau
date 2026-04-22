@@ -194,6 +194,7 @@ end
 	:::
 
 	@tag Constructor
+	@tag Chainable
 	@param config { cframe: CFrame, size: Vector3, shape: Types.ShapeType?, reference: (BasePart | Attachment | Bone)?, isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
 	@return Zone
 ]=]
@@ -248,6 +249,7 @@ end
 	:::
 
 	@tag Constructor
+	@tag Chainable
 	@param part BasePart -- The part to derive the zone from.
 	@param config { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
 	@return Zone
@@ -280,6 +282,7 @@ end
 	Creates and manages a collection of Zones from a static array of BaseParts.
 	
 	@tag Constructor
+	@tag Chainable
 	@within Zone
 	@param parts { BasePart }
 	@param config { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
@@ -322,6 +325,7 @@ end
 	direct children of the given Instance. Automatically updates as children are added/removed.
 	
 	@tag Constructor
+	@tag Chainable
 	@within Zone
 	@param parent Instance
 	@param config { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
@@ -395,6 +399,7 @@ end
 	```
 	
 	@tag Constructor
+	@tag Chainable
 	@within Zone
 	@param parent Instance -- The container (Model, Folder, etc.) to search through.
 	@param config { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
@@ -462,6 +467,7 @@ end
 	If the tag is applied to a container (e.g., a Model or a Folder), it will create zones for all BasePart descendants.
 	
 	@tag Constructor
+	@tag Chainable
 	@within Zone
 	@param tag string
 	@param config { isDynamic: boolean?, metadata: any?, autoSync: boolean? }?
@@ -672,6 +678,7 @@ end
 	Enables or disables automatic polling and syncing to the tracked BasePart.
 	If the zone is currently static, it will automatically be set to dynamic.
 
+	@tag Chainable
 	@method setAutoSync
 	@within Zone
 	@param autoSync boolean
@@ -704,6 +711,7 @@ end
 	Updates the tracked reference for this zone. If `autoSync` is enabled, 
 	the zone will immediately start syncing to the new reference.
 
+	@tag Chainable
 	@method setReference
 	@within Zone
 	@param reference (BasePart | Attachment | Bone)?
@@ -733,6 +741,7 @@ end
 	* Dynamic Zones: Cheap. Forces a rebuild of the smaller dynamic tree.
 	:::
 
+	@tag Chainable
 	@method sync
 	@within Zone
 	@return Zone
@@ -830,6 +839,7 @@ end
 	Use this sparingly (e.g., when a static bridge breaks and becomes dynamic).
 	:::
 
+	@tag Chainable
 	@method setDynamic
 	@within Zone
 	@param isDynamic boolean
@@ -886,6 +896,7 @@ end
 	Requests a rebuild of corresponding tree (batched per frame).
 	:::
 
+	@tag Chainable
 	@method setCFrame
 	@within Zone
 	@param cf CFrame
@@ -909,6 +920,7 @@ end
 	Requests a rebuild of corresponding tree (batched per frame).
 	:::
 
+	@tag Chainable
 	@method setPosition
 	@within Zone
 	@param pos Vector3
@@ -927,6 +939,7 @@ end
 	Requests a rebuild of corresponding tree (batched per frame).
 	:::
 	
+	@tag Chainable
 	@method setSize
 	@within Zone
 	@param size Vector3
@@ -948,6 +961,7 @@ end
 --[=[ 
 	Updates the Zone's geometric shape.
 	
+	@tag Chainable
 	@method setShape
 	@within Zone
 	@param shape ShapeType
@@ -981,6 +995,7 @@ end
 --[=[ 
 	Set the metadata of the zone.
 
+	@tag Chainable
 	@method setMetadata
 	@within Zone
 	@param metadata any?
