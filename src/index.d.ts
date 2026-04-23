@@ -23,7 +23,7 @@ export interface Zone {
 	getMetadata(): any
 	getId(): number
 	getReference(): BasePart | Attachment | Bone | undefined
-	getPosition(): CFrame
+	getPosition(): Vector3
 	getCFrame(): CFrame
 	getSize(): Vector3
 	getShape(): ShapeType
@@ -43,66 +43,16 @@ export interface Zones {
 	setMetadata(metadata: any): Zones
 	getMetadata(): any
 	contains(zone: Zone): boolean
-	iterZones(): () => Zone | undefined
+	iterZones(): IterableFunction<Zone>
 	getReferences(): (BasePart | Attachment | Bone)[]
-	iterReferences(): () => [(BasePart | Attachment | Bone) | undefined, Zone | undefined]
+	iterReferences(): IterableFunction<LuaTuple<[BasePart | Attachment | Bone, Zone]>>
 	onDestroy(callback: () => void): () => void
 	destroy(): void
 }
 
-export interface QuickZone {
-	configure(config: { enabled?: boolean; autoSyncRate?: number; frameBudget?: number }): QuickZone
-	setEnabled(enabled: boolean): QuickZone
-	update(dt: number): QuickZone
-	setAutoSyncRate(hz: number): QuickZone
-	rebuild(): QuickZone
-	setReference(entity: Entity, reference?: any): QuickZone
-	setFrameBudget(ms: number): QuickZone
-	removeEntity(entity: Entity): QuickZone
-	getEntityOfReference(reference: any): Entity | undefined
-	getReferenceOfEntity(entity: Entity): any
-	getObservers(): Observer[]
-	getGroups(): Group[]
-	getZones(): Zone[]
-	getEntities(): Entity[]
-	getZonesAtPoint(position: Vector3): Zone[]
-	getZonesOfEntity(entity: Entity): Zone[]
-	getGroupsOfEntity(entity: Entity): Group[]
-	iterGroups(): () => Group | undefined
-	iterZones(): () => Zone | undefined
-	iterEntities(): () => Entity | undefined
-	iterObservers(): () => Observer | undefined
-	iterGroupsOfEntity(entity: Entity): () => Group | undefined
-	iterZonesOfEntity(entity: Entity): () => Zone | undefined
-	iterZonesAtPoint(point: Vector3): () => Zone | undefined
-	visualize(enabled: boolean): QuickZone
-}
-
-declare const QuickZone: QuickZone
-export default QuickZone
-
-export declare const Zone: {
-	new (config: {
-		cframe: CFrame
-		size: Vector3
-		shape?: ShapeType
-		reference?: BasePart | Attachment | Bone
-		isDynamic?: boolean
-		metadata?: any
-		autoSync?: boolean
-		observers?: Observer[]
-	}): Zone
-
-	fromPart(part: BasePart, config?: { isDynamic?: boolean; metadata?: any; autoSync?: boolean; observers?: Observer[] }): Zone
-	fromParts(parts: BasePart[], config?: { isDynamic?: boolean; metadata?: any; autoSync?: boolean; observers?: Observer[] }): Zones
-	fromChildren(parent: Instance, config?: { isDynamic?: boolean; metadata?: any; autoSync?: boolean; observers?: Observer[] }): Zones
-	fromDescendants(parent: Instance, config?: { isDynamic?: boolean; metadata?: any; autoSync?: boolean; observers?: Observer[] }): Zones
-	fromTag(tag: string, config?: { isDynamic?: boolean; metadata?: any; autoSync?: boolean; observers?: Observer[] }): Zones
-}
-
 export interface ObserverConfig {
 	groups?: Group[]
-	zones?: Zone | Zones[]
+	zones?: (Zone | Zones)[]
 	priority?: number
 	updateRate?: number
 	precision?: number
@@ -113,8 +63,8 @@ export interface ObserverConfig {
 export interface Observer {
 	subscribe(group: Group): Observer
 	unsubscribe(group: Group): Observer
-	attach(zone: Zone): Observer
-	detach(zone: Zone): Observer
+	attach(zone: Zone | Zones): Observer
+	detach(zone: Zone | Zones): Observer
 	observe(callback: (entity: any, zone: Zone) => (() => void) | undefined): () => void
 	onEnter(callback: (entity: any, zone: Zone) => void): () => void
 	onExit(callback: (entity: any, zone: Zone) => void): () => void
@@ -150,18 +100,14 @@ export interface Observer {
 	getPlayerInZone(player: Player): Zone | undefined
 	getEntitiesInZone(zone: Zone): any[]
 	getPlayersInZone(zone: Zone): Player[]
-	iterZones(): () => Zone | undefined
-	iterGroups(): () => Group | undefined
-	iterEntitiesInside(): () => [Entity | undefined, Zone | undefined]
-	iterPlayersInside(): () => [Player | undefined, Zone | undefined]
-	iterEntitiesInZone(zone: Zone): () => Entity | undefined
-	iterPlayersInZone(zone: Zone): () => Player | undefined
+	iterZones(): IterableFunction<Zone>
+	iterGroups(): IterableFunction<Group>
+	iterEntitiesInside(): IterableFunction<LuaTuple<[Entity, Zone]>>
+	iterPlayersInside(): IterableFunction<LuaTuple<[Player, Zone]>>
+	iterEntitiesInZone(zone: Zone): IterableFunction<Entity>
+	iterPlayersInZone(zone: Zone): IterableFunction<Player>
 	onDestroy(callback: () => void): () => void
 	destroy(): void
-}
-
-export declare const Observer: {
-	new (config?: ObserverConfig): Observer
 }
 
 export interface GroupConfig {
@@ -179,14 +125,67 @@ export interface Group {
 	contains(entity: any): boolean
 	getId(): number
 	getEntities(): any[]
-	iterEntities(): () => any | undefined
+	iterEntities(): IterableFunction<any>
 	onDestroy(callback: () => void): () => void
 	destroy(): void
 }
+export interface QuickZone {
+	configure(config: { enabled?: boolean; autoSyncRate?: number; frameBudget?: number }): QuickZone
+	setEnabled(enabled: boolean): QuickZone
+	update(dt: number): QuickZone
+	setAutoSyncRate(hz: number): QuickZone
+	rebuild(): QuickZone
+	setReference(entity: Entity, reference?: any): QuickZone
+	setFrameBudget(ms: number): QuickZone
+	removeEntity(entity: Entity): QuickZone
+	getEntityOfReference(reference: any): Entity | undefined
+	getReferenceOfEntity(entity: Entity): any
+	getObservers(): Observer[]
+	getGroups(): Group[]
+	getZones(): Zone[]
+	getEntities(): Entity[]
+	getZonesAtPoint(position: Vector3): Zone[]
+	getZonesOfEntity(entity: Entity): Zone[]
+	getGroupsOfEntity(entity: Entity): Group[]
+	iterGroups(): IterableFunction<Group>
+	iterZones(): IterableFunction<Zone>
+	iterEntities(): IterableFunction<Entity>
+	iterObservers(): IterableFunction<Observer>
+	iterGroupsOfEntity(entity: Entity): IterableFunction<Group>
+	iterZonesOfEntity(entity: Entity): IterableFunction<Zone>
+	iterZonesAtPoint(point: Vector3): IterableFunction<Zone>
+	visualize(enabled: boolean): QuickZone
 
-export declare const Group: {
-	new (config?: GroupConfig): Group
-	fromTag(tag: string): Group
-	players(): Group
-	localPlayer(): Group
+	Zone: {
+		new (config: {
+			cframe: CFrame
+			size: Vector3
+			shape?: ShapeType
+			reference?: BasePart | Attachment | Bone
+			isDynamic?: boolean
+			metadata?: any
+			autoSync?: boolean
+			observers?: Observer[]
+		}): Zone
+
+		fromPart: (part: BasePart, config?: { isDynamic?: boolean; metadata?: any; autoSync?: boolean; observers?: Observer[] }) => Zone
+		fromParts: (parts: BasePart[], config?: { isDynamic?: boolean; metadata?: any; autoSync?: boolean; observers?: Observer[] }) => Zones
+		fromChildren: (parent: Instance, config?: { isDynamic?: boolean; metadata?: any; autoSync?: boolean; observers?: Observer[] }) => Zones
+		fromDescendants: (parent: Instance, config?: { isDynamic?: boolean; metadata?: any; autoSync?: boolean; observers?: Observer[] }) => Zones
+		fromTag: (tag: string, config?: { isDynamic?: boolean; metadata?: any; autoSync?: boolean; observers?: Observer[] }) => Zones
+	}
+
+	Observer: {
+		new (config?: ObserverConfig): Observer
+	}
+
+	Group: {
+		new (config?: GroupConfig): Group
+		fromTag: (tag: string) => Group
+		players: () => Group
+		localPlayer: () => Group
+	}
 }
+
+declare const QuickZone: QuickZone
+export = QuickZone
