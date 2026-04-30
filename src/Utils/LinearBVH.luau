@@ -5,7 +5,7 @@
 local Geometry = require(script.Parent.Geometry)
 local Types = require(script.Parent.Parent.Types)
 
-local HUGE_VECTOR = Vector3.one * math.huge
+local HUGE_VECTOR = vector.one * math.huge
 local NEGATIVE_HUGE_VECTOR = -HUGE_VECTOR
 
 local unionBounds = Geometry.unionBounds
@@ -113,8 +113,8 @@ function LinearBVH.build(tree: Types.Tree, cframes: { [number]: CFrame }, halfSi
 		objMinCache[id] = bMin
 		objMaxCache[id] = bMax
 
-		min = min:Min(bMin)
-		max = max:Max(bMax)
+		min = vector.min(min, bMin)
+		max = vector.max(max, bMax)
 
 		count += 1
 
@@ -150,7 +150,7 @@ function LinearBVH.build(tree: Types.Tree, cframes: { [number]: CFrame }, halfSi
 	end
 
 	-- Add padding to avoid edge cases with flat scenes
-	local padding = ((max - min) * 0.01):Max(Vector3.one)
+	local padding = vector.max(vector.one, (max - min) * 0.01)
 	local sceneMin, sceneMax = min - padding, max + padding
 	local scaleX, scaleY, scaleZ = getMortonScale(sceneMin, sceneMax)
 

@@ -279,16 +279,16 @@ end
 	@return () -> ((BasePart | Attachment | Bone)?, Zone?)
 ]=]
 function Zones.iterReferences(self: Types.InternalZones): () -> ((BasePart | Attachment | Bone)?, Types.Zone?)
-	local currentZone: Types.Zone? = nil
+	local currentZone: Types.Zone
 
 	return function()
 		while true do
-			currentZone = next(self.zones, currentZone)
+			currentZone = next(self.zones :: any, currentZone)
 			if not currentZone then
 				return nil, nil
 			end
 
-			local ref = (currentZone :: Types.Zone):getReference()
+			local ref = currentZone:getReference()
 			if ref then
 				return ref, currentZone
 			end
