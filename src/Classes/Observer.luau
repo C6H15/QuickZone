@@ -1385,13 +1385,13 @@ end
 	@return () -> Zone?
 ]=]
 function Observer.iterZones(self: Types.InternalObserver): () -> Types.Zone?
-	local zoneId: number
+	local zoneId: number?
 	local attachedList: { number }
 	local observerId = self.id
 
 	return function(): Types.Zone?
 		while true do
-			zoneId, attachedList = next(zoneAttachedObservers :: any, zoneId)
+			zoneId, attachedList = next(zoneAttachedObservers, zoneId)
 
 			if not zoneId then
 				return nil
@@ -1417,13 +1417,13 @@ end
 	@return () -> Group?
 ]=]
 function Observer.iterGroups(self: Types.InternalObserver): () -> Types.Group?
-	local groupId: number
+	local groupId: number?
 	local observersMap: { [number]: boolean }
 	local observerId = self.id
 
 	return function(): Types.Group?
 		while true do
-			groupId, observersMap = next(State.groupToObservers :: any, groupId)
+			groupId, observersMap = next(State.groupToObservers, groupId)
 
 			if not groupId then
 				return nil
@@ -1433,7 +1433,7 @@ function Observer.iterGroups(self: Types.InternalObserver): () -> Types.Group?
 				continue
 			end
 
-			local group = State.groups[groupId]
+			local group = State.groups[groupId :: number]
 			if group then
 				return group
 			end
@@ -1451,7 +1451,7 @@ end
 ]=]
 function Observer.iterEntitiesInside(self: Types.InternalObserver): () -> (any?, Types.Zone?)
 	local entities = (State.observerTrackingEntities[self.id] or {}) :: { [Types.Entity]: boolean }
-	local entity: Types.Entity
+	local entity: Types.Entity?
 	local observerId = self.id
 
 	return function()
@@ -1461,7 +1461,7 @@ function Observer.iterEntitiesInside(self: Types.InternalObserver): () -> (any?,
 				return nil
 			end
 
-			local data = State.entityData[entity]
+			local data = State.entityData[entity :: Types.Entity]
 			if not data then
 				continue
 			end
@@ -1471,7 +1471,7 @@ function Observer.iterEntitiesInside(self: Types.InternalObserver): () -> (any?,
 				continue
 			end
 
-			local ref = State.entityToReference[entity] or entity
+			local ref = State.entityToReference[entity :: Types.Entity] or entity
 			return ref, State.zoneIdToZoneObj[zoneId]
 		end
 	end
@@ -1487,7 +1487,7 @@ end
 ]=]
 function Observer.iterPlayersInside(self: Types.InternalObserver): () -> (Player?, Types.Zone?)
 	local entities = (State.observerTrackingEntities[self.id] or {}) :: { [Types.Entity]: boolean }
-	local entity: Types.Entity
+	local entity: Types.Entity?
 	local observerId = self.id
 
 	return function()
@@ -1497,7 +1497,7 @@ function Observer.iterPlayersInside(self: Types.InternalObserver): () -> (Player
 				return nil, nil
 			end
 
-			local data = State.entityData[entity]
+			local data = State.entityData[entity :: Types.Entity]
 			if not data then
 				continue
 			end
@@ -1507,7 +1507,7 @@ function Observer.iterPlayersInside(self: Types.InternalObserver): () -> (Player
 				continue
 			end
 
-			local ref = State.entityToReference[entity] or entity
+			local ref = State.entityToReference[entity :: Types.Entity] or entity
 			if typeof(ref) == 'Instance' and ref:IsA('Player') then
 				return ref, State.zoneIdToZoneObj[zoneId]
 			end
@@ -1532,7 +1532,7 @@ function Observer.iterEntitiesInZone(self: Types.InternalObserver, zone: Types.Z
 		end
 	end
 
-	local entity: Types.Entity
+	local entity: Types.Entity?
 	local targetZoneId = zone:getId()
 	local observerId = self.id
 
@@ -1543,13 +1543,13 @@ function Observer.iterEntitiesInZone(self: Types.InternalObserver, zone: Types.Z
 				return nil
 			end
 
-			local data = State.entityData[entity]
+			local data = State.entityData[entity :: Types.Entity]
 
 			if not data or data.activeObserverMemberships[observerId] ~= targetZoneId then
 				continue
 			end
 
-			return State.entityToReference[entity] or entity
+			return State.entityToReference[entity :: Types.Entity] or entity
 		end
 	end
 end
@@ -1571,7 +1571,7 @@ function Observer.iterPlayersInZone(self: Types.InternalObserver, zone: Types.Zo
 		end
 	end
 
-	local entity: Types.Entity
+	local entity: Types.Entity?
 	local targetZoneId = zone:getId()
 	local observerId = self.id
 
@@ -1582,13 +1582,13 @@ function Observer.iterPlayersInZone(self: Types.InternalObserver, zone: Types.Zo
 				return nil
 			end
 
-			local data = State.entityData[entity]
+			local data = State.entityData[entity :: Types.Entity]
 
 			if not data or data.activeObserverMemberships[observerId] ~= targetZoneId then
 				continue
 			end
 
-			local ref = State.entityToReference[entity] or entity
+			local ref = State.entityToReference[entity :: Types.Entity] or entity
 			if typeof(ref) == 'Instance' and ref:IsA('Player') then
 				return ref
 			end

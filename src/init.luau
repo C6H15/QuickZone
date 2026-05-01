@@ -565,16 +565,16 @@ function QuickZone:iterZonesOfEntity(entity: any): () -> Types.Zone?
 
 	local memberships = data.activeObserverMemberships
 	local seenZones: { [number]: boolean } = {}
-	local observerId: number
+	local observerId: number?
 
 	return function(): Types.Zone?
 		while true do
-			observerId = next(memberships :: any, observerId)
+			observerId = next(memberships, observerId)
 			if not observerId then
 				return nil
 			end
 
-			local zoneId = memberships[observerId]
+			local zoneId = memberships[observerId :: number]
 			if seenZones[zoneId] then
 				continue
 			end
