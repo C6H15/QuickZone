@@ -672,6 +672,8 @@ function Zone.detach(self: Types.InternalZone, observer: Types.InternalObserver)
 		State.staticVersion += 1
 	end
 
+	State.logicVersion += 1
+
 	return self
 end
 
