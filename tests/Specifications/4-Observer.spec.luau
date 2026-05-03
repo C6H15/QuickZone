@@ -1587,5 +1587,26 @@ return function(Tiniest: Tiniest)
 			zone:destroy()
 			part:Destroy()
 		end)
+
+		Test('Observer keeps tracking the shared entity after destroying another observer.', function()
+			local part = CreatePart()
+			local zone = Zone.new({ cframe = CFrame.identity, size = Vector3.one * 10 })
+			local group = Group.new({ entities = { part } })
+			local observerA = Observer.new({ zones = { zone }, groups = { group }, safety = false })
+			local observerB = Observer.new({ zones = { zone }, groups = { group }, safety = false })
+
+			observerA:onEnter(function()
+				observerB:destroy()
+			end)
+			QuickZone:update(1 / 10)
+
+			Expect(observerA:getEntitiesInside()).has_value(part)
+			Expect(observerA:getZoneOfEntity(part)).is(zone)
+
+			observerA:destroy()
+			group:destroy()
+			zone:destroy()
+			part:Destroy()
+		end)
 	end)
 end

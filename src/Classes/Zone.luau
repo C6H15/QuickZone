@@ -100,6 +100,7 @@ local function setupAutoSync(zone: Types.InternalZone, reference: BasePart | Att
 	end
 
 	zone.syncConnections = connections
+	zone:sync()
 end
 
 local function updateObserverZoneCount(observerId: number, isDynamic: boolean, delta: number)

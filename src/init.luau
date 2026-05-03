@@ -169,17 +169,22 @@ end
 	@return QuickZone
 ]=]
 function QuickZone:setReference(entity: Entity, reference: any?): QuickZone
+	local oldReference = entityToReference[entity]
+
 	if reference == nil then
-		local oldReference = entityToReference[entity]
-		if oldReference then
-			referenceToEntity[oldReference] = nil
+		if not (typeof(oldReference) == 'Instance' and oldReference:IsA('Player')) then
+			if oldReference then
+				referenceToEntity[oldReference] = nil
+			end
+			entityToReference[entity] = nil
 		end
-		entityToReference[entity] = nil
 		return self
 	end
 
-	entityToReference[entity] = reference
-	referenceToEntity[reference] = entity
+	if not (typeof(reference) == 'Instance' and reference:IsA('Player')) then
+		entityToReference[entity] = reference
+		referenceToEntity[reference] = entity
+	end
 
 	return self
 end
